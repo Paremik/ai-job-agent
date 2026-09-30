@@ -1,0 +1,39 @@
+{
+  "jobs": [
+    {
+      "id": 1001,
+      "title": "Junior Backend Developer ",
+      "location": {
+        "name": "Warsaw, Poland"
+      },
+      "absolute_url": "https://example.com/jobs/1001",
+      "content": "Backend developer position",
+      "updated_at": "2026-09-18T08:00:00Z",
+      "internal_job_id": 5001,
+      "language": "en"
+    },
+    {
+      "id": 1002,
+      "title": "Frontend Developer",
+      "location": {
+        "name": "Remote"
+      },
+      "absolute_url": "https://example.com/jobs/1002",
+      "content": "Frontend developer position",
+      "updated_at": "2026-09-18T08:10:00Z",
+      "internal_job_id": 5002,
+      "language": "en"
+    },
+    {
+      "id": 1003,
+      "location": {
+        "name": "Berlin"
+      },
+      "absolute_url": "https://example.com/jobs/1003",
+      "content": "This fixture intentionally has no title"
+    }
+  ],
+  "meta": {
+    "total": 3
+  }
+}
