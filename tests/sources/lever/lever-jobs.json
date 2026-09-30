@@ -1,0 +1,53 @@
+[
+  {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "text": "Junior Frontend Developer ",
+    "categories": {
+      "location": "Warsaw, Poland",
+      "commitment": "Full-time",
+      "team": "Engineering"
+    },
+    "description": "<p>Build web interfaces with React and TypeScript.</p>",
+    "descriptionPlain": "Build web interfaces with React and TypeScript.",
+    "lists": [
+      {
+        "text": "Requirements",
+        "content": "<li>Basic JavaScript knowledge.</li><li>A portfolio project.</li>"
+      },
+      {
+        "text": "Benefits",
+        "content": "<li>Mentoring from experienced developers.</li>"
+      }
+    ],
+    "additional": "<p>Personal and university projects are welcome.</p>",
+    "additionalPlain": "Personal and university projects are welcome.",
+    "hostedUrl": "https://example.com/jobs/11111111-1111-4111-8111-111111111111",
+    "workplaceType": "hybrid",
+    "salaryRange": {
+      "currency": "PLN",
+      "interval": "test-pay-period",
+      "min": 60000,
+      "max": 84000
+    },
+    "salaryDescription": "<p>Annual gross salary.</p>",
+    "salaryDescriptionPlain": "Annual gross salary."
+  },
+  {
+    "id": "22222222-2222-4222-8222-222222222222",
+    "text": "QA Intern",
+    "categories": {
+      "location": "Remote",
+      "commitment": "Intern"
+    },
+    "description": "<p>Help test web applications.</p>",
+    "lists": [],
+    "additional": "",
+    "hostedUrl": "https://example.com/jobs/22222222-2222-4222-8222-222222222222",
+    "workplaceType": "remote"
+  },
+  {
+    "id": "33333333-3333-4333-8333-333333333333",
+    "description": "This synthetic fixture intentionally has no job title.",
+    "hostedUrl": "https://example.com/jobs/33333333-3333-4333-8333-333333333333"
+  }
+]

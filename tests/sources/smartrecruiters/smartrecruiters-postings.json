@@ -1,0 +1,26 @@
+{
+  "limit": 100,
+  "offset": 0,
+  "totalFound": 2,
+  "content": [
+    {
+      "id": "posting-101",
+      "uuid": "a1b2c3d4-1111-4111-8111-111111111111",
+      "name": "Backend Engineer",
+      "company": { "identifier": "example-company", "name": "Example Company" },
+      "location": {
+        "city": "Warsaw",
+        "region": "Mazowieckie",
+        "country": "Poland",
+        "remote": false
+      }
+    },
+    {
+      "id": "posting-102",
+      "uuid": "a1b2c3d4-2222-4222-8222-222222222222",
+      "name": "Remote Designer",
+      "company": { "identifier": "example-company", "name": "Example Company" },
+      "location": { "city": "Berlin", "country": "Germany", "remote": true }
+    }
+  ]
+}
