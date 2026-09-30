@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790799202127,
+      "tag": "0000_flippant_hawkeye",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790801049328,
+      "tag": "0001_job_content_hash",
+      "breakpoints": true
+    }
+  ]
+}

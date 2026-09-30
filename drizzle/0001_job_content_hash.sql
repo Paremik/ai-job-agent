@@ -1,0 +1,1 @@
+ALTER TABLE "job_agent"."jobs" ADD COLUMN "content_hash" text;

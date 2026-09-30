@@ -58,6 +58,12 @@ describe("JobSourceOrchestrator", () => {
 
     const discovered = await orchestrator.discover(context);
     expect(discovered.jobs.map((item) => item.id)).toEqual(["one", "two", "three"]);
+    expect(discovered.observations.map((item) => item.id)).toEqual([
+      "one",
+      "two",
+      "duplicate",
+      "three",
+    ]);
     expect(discovered.stats).toEqual({ fetched: 4, valid: 3, rejected: 0 });
     expect(discovered.errors).toEqual([
       { code: "LEVER_BAD_JOB", message: "Rejected job", retryable: false, source: "lever" },
@@ -73,6 +79,7 @@ describe("JobSourceOrchestrator", () => {
   it("supports an empty source list", async () => {
     await expect(new JobSourceOrchestrator([]).discover(context)).resolves.toEqual({
       jobs: [],
+      observations: [],
       stats: { fetched: 0, valid: 0, rejected: 0 },
       errors: [],
     });

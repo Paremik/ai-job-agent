@@ -1,10 +1,12 @@
 import type { Job } from "../domain/job.js";
+import { normalizeJobUrl } from "../domain/job-url.js";
 import type { DiscoveryContext, JobSource, SourceError, SourceStats } from "./job-source.js";
 
 export type OrchestratedSourceError = SourceError & { source: string };
 
 export type JobDiscoveryResult = {
   jobs: Job[];
+  observations: Job[];
   stats: SourceStats;
   errors: OrchestratedSourceError[];
 };
@@ -36,6 +38,8 @@ export class JobSourceOrchestrator {
     );
 
     const uniqueJobs = new Map<string, Job>();
+    // Preserve all source references even when the display list is deduplicated.
+    const observations: Job[] = [];
     const errors: OrchestratedSourceError[] = [];
     const stats: SourceStats = { fetched: 0, valid: 0, rejected: 0 };
 
@@ -55,24 +59,14 @@ export class JobSourceOrchestrator {
       for (const error of result.errors) errors.push({ ...error, source: source.name });
 
       for (const job of result.jobs) {
-        const key = this.getCanonicalKey(job.canonicalUrl);
+        observations.push(job);
+        const key = normalizeJobUrl(job.canonicalUrl);
         if (!uniqueJobs.has(key)) uniqueJobs.set(key, job);
       }
     }
 
     const jobs = [...uniqueJobs.values()];
     stats.valid = jobs.length;
-    return { jobs, stats, errors };
-  }
-
-  private getCanonicalKey(value: string): string {
-    try {
-      const url = new URL(value);
-      url.hash = "";
-      url.search = "";
-      return url.toString().replace(/\/$/, "");
-    } catch {
-      return value.trim();
-    }
+    return { jobs, observations, stats, errors };
   }
 }

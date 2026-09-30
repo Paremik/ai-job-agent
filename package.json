@@ -10,7 +10,11 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "discover": "node --env-file-if-exists=.env --import tsx scripts/discover-jobs.ts"
+    "discover": "node --env-file-if-exists=.env --import tsx scripts/discover-jobs.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "node --env-file-if-exists=.env --import tsx scripts/database.ts check",
+    "db:status": "node --env-file-if-exists=.env --import tsx scripts/database.ts status",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/database.ts migrate"
   },
   "keywords": [],
   "author": "",
@@ -25,11 +29,15 @@
   "packageManager": "pnpm@12.4.2",
   "type": "module",
   "dependencies": {
+    "drizzle-orm": "^0.45.3",
+    "pg": "^8.23.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.3",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
     "prettier": "^3.9.7",
