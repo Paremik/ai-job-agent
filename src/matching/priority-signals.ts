@@ -48,7 +48,7 @@ export function prioritySignals(
       );
     }
   }
-  const snippet = /\[Jooble search snippet|\[RSS summary/i.test(description);
+  const snippet = /\[Jooble search snippet|\[RSS summary|\[Manual summary/i.test(description);
   const hasRequired = comparison.statements.some(
     ({ requirement, ignored }) => !ignored && requirement.importance === "required",
   );
@@ -56,7 +56,7 @@ export function prioritySignals(
   if (incomplete)
     reasons.push(
       snippet
-        ? "Доступен только фрагмент: до оценки получить полные требования."
+        ? "Доступен фрагмент или ручной пересказ: до оценки проверить полные требования."
         : "Обязательные требования не распознаны; полнота описания и разбора не подтверждена.",
     );
   else

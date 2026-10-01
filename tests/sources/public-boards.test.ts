@@ -179,6 +179,14 @@ describe("manual multi-platform import", () => {
       workplaceType: "unknown",
     });
   });
+  it("accepts the verified No Fluff Jobs entrypoint host", () => {
+    expect(
+      importedJobs(
+        [{ ...record, url: "https://entrypoint-prod.nofluffjobs.com/pl/job/example" }],
+        context.startedAt,
+      )[0]?.source,
+    ).toBe("nofluffjobs");
+  });
   it("rejects URL-only entries, foreign country and unknown hosts", () => {
     expect(() => importedJobs([{ url: record.url }], context.startedAt)).toThrow();
     expect(() => importedJobs([{ ...record, country: "US" }], context.startedAt)).toThrow();

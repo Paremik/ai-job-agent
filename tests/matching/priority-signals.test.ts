@@ -56,6 +56,7 @@ describe("review-aware priority", () => {
   it.each([
     "[Jooble search snippet — incomplete description]\nMinimum qualifications\nPython",
     "[RSS summary]\nPython",
+    "[Manual summary; verify original posting.]\nMinimum qualifications\nPython",
     "Python",
   ])("does not promote incomplete text %s", (text) => {
     expect(row("a", text).priority.signals?.incomplete).toBe(true);

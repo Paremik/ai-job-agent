@@ -13,7 +13,7 @@ export const platforms = [
   },
   {
     id: "nofluffjobs",
-    hosts: ["nofluffjobs.com"],
+    hosts: ["nofluffjobs.com", "entrypoint-prod.nofluffjobs.com"],
     mode: "public_pages",
     note: "Публичные структурированные данные; описание может быть неполным.",
   },
