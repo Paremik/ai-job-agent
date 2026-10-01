@@ -14,6 +14,7 @@ import { compareRequirements } from "../src/matching/compare-requirements.js";
 import { buildLocationReport } from "../src/matching/location-report.js";
 import { jobPriority, compareJobPriority } from "../src/matching/job-priority.js";
 import { prioritySignals } from "../src/matching/priority-signals.js";
+import { screeningDecision } from "../src/matching/screening-decision.js";
 
 async function main() {
   const folder = new URL("../private/", import.meta.url);
@@ -62,21 +63,27 @@ async function main() {
         const requirements = extractRequirements(description);
         const comparison = compareRequirements(profile, requirements);
         const signals = prioritySignals(metadata.title, description, profile, comparison);
+        const locationDecision = locations.get(metadata.id);
+        const priority = jobPriority(
+          metadata.title,
+          requirements,
+          locationDecision?.status ?? "needs_review",
+          signals,
+        );
         return {
           ...metadata,
-          locationDecision: locations.get(metadata.id),
+          locationDecision,
           comparison,
-          priority: jobPriority(
-            metadata.title,
-            requirements,
-            locations.get(metadata.id)?.status ?? "needs_review",
-            signals,
-          ),
+          priority,
+          screening: screeningDecision(priority, locationDecision),
         };
       })
       .sort(compareJobPriority);
     const summary = {
       jobs: rows.length,
+      reviewNow: rows.filter((row) => row.screening.status === "review_now").length,
+      clarifyFirst: rows.filter((row) => row.screening.status === "clarify_first").length,
+      deferred: rows.filter((row) => row.screening.status === "defer").length,
       incompleteRequirements: rows.filter((row) => row.priority.signals?.incomplete).length,
       languageNeedsReview: rows.filter((row) => row.priority.signals?.languageReview).length,
       entryPriority: rows.filter((row) => row.priority.tier === "entry").length,
@@ -120,6 +127,7 @@ async function main() {
         "",
         `ID: ${row.id}`,
         `Приоритет: ${row.priority.tier}. ${row.priority.reasons.map(clean).join(" ")}`,
+        `Очередь проверки: ${row.screening.status}. ${row.screening.reasons.map(clean).join(" ")}`,
         "",
         `Место работы: ${clean(row.locationDecision?.explanation ?? "Уточнить")}`,
         `Совпадения технологий: ${row.comparison.matchedSkills.join(", ") || "нет"}.`,
@@ -155,6 +163,7 @@ async function main() {
           `## ${index + 1}. ${clean(row.title)} — ${clean(row.company)}`,
           "",
           `Приоритет: ${row.priority.tier}.`,
+          `Очередь проверки: ${row.screening.status}.`,
           ...row.priority.reasons.map((reason) => `- ${clean(reason)}`),
           `- Совпадения технологий: ${row.comparison.matchedSkills.join(", ") || "нет"}.`,
           `- Место: ${clean(row.locationDecision?.explanation ?? "Уточнить")}`,

@@ -17,3 +17,17 @@ step does not classify occupation or establish overall suitability.
 The JSON report stores reasons and experience evidence for each priority. The full
 Markdown report shows reasons; `private/priority-shortlist.md` provides the first
 20 jobs and links. Location and authorization still require separate confirmation.
+
+## Conservative screening queue
+
+`pnpm match:profile` also writes `screening` for each row and summary counts:
+`review_now`, `clarify_first`, or `defer`. This is a deterministic order for
+human inspection, not an eligibility score or permission to apply. Every state
+has `applicationAllowed: false`.
+
+Only a manually confirmed location conflict or a clearly advanced role / required
+3+ years goes to `defer`; the vacancy stays in the report. A location conflict
+derived from description rules, an incomplete posting, missing skill evidence, or
+a declared language gap goes to `clarify_first`. A junior role with no such flagged
+gaps and a confirmed compatible location is `review_now`. Work authorization,
+schedule, actual proficiency, and job freshness still require human review.
