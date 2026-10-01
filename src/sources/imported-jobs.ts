@@ -33,7 +33,7 @@ export function importedJobs(input: unknown, now: Date): Job[] {
       source: platform.id,
       company: item.company,
       title: item.title,
-      description: `[Manually imported posting; country PL supplied by user, verify conditions.]\n${item.description}`,
+      description: `[Manually imported posting; country PL recorded in import, verify conditions.]\n${item.description}`,
       location: item.location,
       workplaceType: item.workplaceType,
       salaryMin: null,
