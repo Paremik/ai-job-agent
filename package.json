@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dashboard:build": "node --import tsx scripts/build-dashboard.ts",
     "shortlist:prepare": "node --env-file-if-exists=.env --import tsx scripts/prepare-shortlist.ts",
     "profile:check": "tsx scripts/profile-check.ts",
     "discover:boards": "node --env-file-if-exists=.env --import tsx scripts/discover-jobs.ts --boards",
