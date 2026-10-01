@@ -1,0 +1,11 @@
+{
+  "country": "PL",
+  "queries": [
+    { "keywords": "junior developer", "location": "Polska" },
+    { "keywords": "tester junior", "location": "Polska" },
+    { "keywords": "helpdesk IT", "location": "Polska" },
+    { "keywords": "staż IT", "location": "Polska" }
+  ],
+  "pagesPerQuery": 1,
+  "resultsPerPage": 20
+}

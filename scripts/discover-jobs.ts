@@ -1,3 +1,6 @@
+import { PublicBoardSource } from "../src/sources/public-boards.js";
+import { readFile } from "node:fs/promises";
+import { JoobleSource, PolandSearchSchema } from "../src/sources/jooble/jooble-source.js";
 import { GreenhouseSource } from "../src/sources/greenhouse/index.js";
 import { randomUUID } from "node:crypto";
 import { createDatabase, DatabaseConfigError } from "../src/infrastructure/database/client.js";
@@ -8,11 +11,13 @@ import { JobSourceOrchestrator } from "../src/sources/job-source-orchestrator.js
 import { SmartRecruitersSource } from "../src/sources/smartrecruiters/index.js";
 
 async function main() {
+  const onlyBoards = process.argv.includes("--boards");
+  const onlyPoland = process.argv.includes("--poland") || onlyBoards;
   const sources: JobSource[] = [];
   const sourceAccounts = new Map<string, string>();
 
   const greenhouseBoard = process.env.GREENHOUSE_BOARD_TOKEN?.trim();
-  if (greenhouseBoard) {
+  if (greenhouseBoard && !onlyPoland) {
     sourceAccounts.set("greenhouse", greenhouseBoard);
     sources.push(
       new GreenhouseSource({
@@ -23,7 +28,7 @@ async function main() {
   }
 
   const leverSite = process.env.LEVER_SITE?.trim();
-  if (leverSite) {
+  if (leverSite && !onlyPoland) {
     const regionValue = process.env.LEVER_REGION?.trim() || "global";
     if (regionValue !== "global" && regionValue !== "eu") {
       throw new Error("LEVER_REGION must be either global or eu");
@@ -39,7 +44,7 @@ async function main() {
   }
 
   const smartRecruitersCompany = process.env.SMARTRECRUITERS_COMPANY_IDENTIFIER?.trim();
-  if (smartRecruitersCompany) {
+  if (smartRecruitersCompany && !onlyPoland) {
     sourceAccounts.set("smartrecruiters", smartRecruitersCompany);
     const limitValue = process.env.SMARTRECRUITERS_MAX_POSTINGS?.trim();
     const maxPostings = limitValue ? Number(limitValue) : undefined;
@@ -56,6 +61,25 @@ async function main() {
     );
   }
 
+  const joobleKey = process.env.JOOBLE_API_KEY?.trim();
+  if (onlyPoland) {
+    for (const name of ["justjoin", "nofluffjobs", "solidjobs", "bulldogjob"] as const) {
+      sources.push(new PublicBoardSource(name));
+      sourceAccounts.set(name, "pl");
+    }
+    if (!joobleKey && !onlyBoards)
+      console.log("Jooble skipped: no key configured; public boards still run.");
+  }
+  if (joobleKey && !onlyBoards) {
+    const config = PolandSearchSchema.parse(
+      JSON.parse(await readFile(new URL("../config/search-poland.json", import.meta.url), "utf8")),
+    );
+    sources.push(new JoobleSource(joobleKey, config));
+    sourceAccounts.set("jooble", "pl");
+    console.log(
+      `Poland Jooble search: up to ${config.queries.length * config.pagesPerQuery} requests; snippets need full-posting review.`,
+    );
+  }
   if (sources.length === 0) {
     console.error(
       "No job sources configured. Copy .env.example to .env and fill in at least one source identifier.",

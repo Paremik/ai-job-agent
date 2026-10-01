@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "displayName": "Example Candidate",
+  "evidence": [
+    {
+      "id": "preferences",
+      "kind": "user_statement",
+      "reference": "Candidate confirmed these work preferences"
+    }
+  ],
+  "facts": [],
+  "preferences": {
+    "searchScope": "entry_level_it_broad",
+    "homeCity": "Example City",
+    "homeCountry": "PL",
+    "onsiteInHomeCity": true,
+    "hybridMaxOneWayMinutes": 60,
+    "remoteAllowed": true,
+    "salary": "negotiable",
+    "schedule": "negotiable",
+    "availableFrom": null,
+    "workAuthorization": null,
+    "evidenceIds": ["preferences"]
+  },
+  "unresolved": ["Confirm availability and work authorization"]
+}
