@@ -71,9 +71,7 @@
         "agent_runs_run_id_unique": {
           "name": "agent_runs_run_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id"
-          ]
+          "columns": ["run_id"]
         }
       },
       "policies": {},
@@ -127,9 +125,7 @@
         "companies_normalized_name_unique": {
           "name": "companies_normalized_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "normalized_name"
-          ]
+          "columns": ["normalized_name"]
         }
       },
       "policies": {},
@@ -241,12 +237,8 @@
           "tableFrom": "jobs",
           "tableTo": "companies",
           "schemaTo": "job_agent",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -256,9 +248,7 @@
         "jobs_canonical_url_unique": {
           "name": "jobs_canonical_url_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "canonical_url"
-          ]
+          "columns": ["canonical_url"]
         }
       },
       "policies": {},
@@ -349,12 +339,8 @@
           "tableFrom": "source_refs",
           "tableTo": "jobs",
           "schemaTo": "job_agent",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -364,11 +350,7 @@
         "source_refs_identity_unique": {
           "name": "source_refs_identity_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "source",
-            "source_account",
-            "external_id"
-          ]
+          "columns": ["source", "source_account", "external_id"]
         }
       },
       "policies": {},
@@ -385,22 +367,12 @@
     "job_agent.run_status": {
       "name": "run_status",
       "schema": "job_agent",
-      "values": [
-        "running",
-        "completed",
-        "partial",
-        "failed"
-      ]
+      "values": ["running", "completed", "partial", "failed"]
     },
     "job_agent.workplace_type": {
       "name": "workplace_type",
       "schema": "job_agent",
-      "values": [
-        "remote",
-        "hybrid",
-        "onsite",
-        "unknown"
-      ]
+      "values": ["remote", "hybrid", "onsite", "unknown"]
     }
   },
   "schemas": {
