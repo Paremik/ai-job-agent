@@ -1253,14 +1253,21 @@
       }
       function draftControl(row) {
         const wrap = node("div", "brief-control");
+        const hasPreparedCv = (draftsByUrl.get(row.url) || []).some((draft) => draft.cv);
         wrap.append(
           node(
             "p",
             "muted",
-            "Создай локальные черновики из подтверждённых фактов. Проверь объявление и весь текст перед откликом.",
+            hasPreparedCv
+              ? "Готовое CV PDF находится выше. Здесь можно открыть и поправить текст письма перед откликом."
+              : "Создай локальные черновики из подтверждённых фактов. Проверь объявление и весь текст перед откликом.",
           ),
         );
-        const button = node("button", "", "Создать или открыть CV и письмо");
+        const button = node(
+          "button",
+          "",
+          hasPreparedCv ? "Создать или открыть письмо" : "Создать или открыть CV и письмо",
+        );
         button.type = "button";
         button.disabled = !state.ready;
         const result = node("div", "brief-result");
@@ -1286,7 +1293,7 @@
             const message = node(
               "p",
               "muted",
-              "Черновики сохранены только на этом компьютере. Работодатель их не получил.",
+              "Черновик сохранён только на этом компьютере. Работодатель его не получил.",
             );
             save.addEventListener("click", async () => {
               save.disabled = true;
@@ -1302,8 +1309,9 @@
                   }),
                 });
                 if (!updated.ok) throw new Error("Не удалось сохранить правки");
-                message.textContent =
-                  "Правки сохранены. Обнови окно печати CV, если оно уже открыто.";
+                message.textContent = hasPreparedCv
+                  ? "Правки письма сохранены."
+                  : "Правки сохранены. Обнови окно печати CV, если оно уже открыто.";
               } catch (error) {
                 message.textContent = error.message || "Не удалось сохранить правки.";
               } finally {
@@ -1311,8 +1319,11 @@
               }
             });
             const links = node("div", "draft-links");
+            if (!hasPreparedCv)
+              links.append(
+                localLink("Открыть CV для печати/PDF", "application-drafts/" + row.id + "/cv"),
+              );
             links.append(
-              localLink("Открыть CV для печати/PDF", "application-drafts/" + row.id + "/cv"),
               localLink("Открыть письмо", "application-drafts/" + row.id + "/letter.txt"),
             );
             const notes = node("ul");
@@ -1325,8 +1336,7 @@
                     "Данные вакансии или профиля изменились. Существующие правки сохранены; проверь их заново.",
                   )
                 : node("p", "muted", "Черновики по шаблону. Можно редактировать прямо здесь."),
-              node("label", "", "CV на польском"),
-              cv,
+              ...(hasPreparedCv ? [] : [node("label", "", "CV на польском"), cv]),
               node("label", "", "Письмо на польском"),
               letter,
               save,

@@ -8,6 +8,8 @@ The panel loads application trackers from every dated folder under `private/appl
 
 The "Создать или открыть CV и письмо" button makes editable Polish drafts directly in the vacancy panel. It checks that the comparison report still matches the private candidate profile, selects verified projects for the role, and keeps a review checklist of unresolved gaps. Drafts are saved in `private/local-drafts/<job-id>.json`; opening them again preserves manual edits. The CV print view can be saved as PDF through the browser's Print command. This is a local template, not an AI model: it cannot verify whether an ad is still active or understand every unusual requirement. Read the original ad and edit every claim before applying. The server never sends an application.
 
+When a prepared package already provides a CV PDF for the vacancy, the panel shows that CV in "Подготовленные материалы" and offers only the editable letter below it. The generated alternative CV stays hidden in this case to avoid confusing it with the prepared PDF. Other vacancies still offer both editable drafts.
+
 The generator reads contact details from Git-ignored `private/applicant-contact.json`. If moving the project to another computer, create the file using your verified details:
 
 ```json
