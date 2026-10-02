@@ -69,6 +69,7 @@ export function buildApplicationBrief(
     category: fact.category,
     statement: fact.statement,
     basis: fact.basis,
+    languageLevels: fact.languageLevels ?? [],
     evidence: fact.evidenceIds.map((id) => ({ id, reference: evidence.get(id)!.reference })),
   }));
   const requirements = row.comparison.statements

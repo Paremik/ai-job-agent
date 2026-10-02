@@ -6,7 +6,19 @@ The dashboard shows search, review filters, job details, original job links and 
 
 The panel loads application trackers from every dated folder under `private/applications/`. When a prepared package has exactly the same vacancy URL as a comparison row, its CV, letter and certificate links appear in that vacancy's detail panel. The packages tab also has the same status, star, note and next-action controls; this supports prepared opportunities absent from the current database report. Marking a package as sent places it in the archive. A package link means a local draft exists, not that it has been reviewed, approved or sent. The dashboard's review file is the current manual tracking record; older application trackers remain package manifests.
 
-The "Собрать задание для CV и письма" button in a vacancy creates `private/application-briefs/<job-id>.md`. It checks that the comparison report still matches the private candidate profile, then includes the vacancy, extracted requirements, unresolved gaps and candidate facts with evidence IDs. The vacancy text is labeled as untrusted source data. The brief is a review request, not a generated CV or letter. Copy its short request to Codex to prepare individual editable materials; review the vacancy and every claim before using them. The local server does not call an LLM or send an application.
+The "Создать или открыть CV и письмо" button makes editable Polish drafts directly in the vacancy panel. It checks that the comparison report still matches the private candidate profile, selects verified projects for the role, and keeps a review checklist of unresolved gaps. Drafts are saved in `private/local-drafts/<job-id>.json`; opening them again preserves manual edits. The CV print view can be saved as PDF through the browser's Print command. This is a local template, not an AI model: it cannot verify whether an ad is still active or understand every unusual requirement. Read the original ad and edit every claim before applying. The server never sends an application.
+
+The generator reads contact details from Git-ignored `private/applicant-contact.json`. If moving the project to another computer, create the file using your verified details:
+
+```json
+{
+  "email": "you@example.com",
+  "phone": "+48 000 000 000",
+  "github": "https://github.com/your-name"
+}
+```
+
+The earlier `/api/application-brief` endpoint remains available for evidence review, but using the dashboard no longer requires copying a prompt into chat.
 
 Each vacancy can have a private note and a next-action date. Marking a vacancy as sent suggests a date seven days later; the date can be edited or cleared. The "Следующие действия" section lists scheduled items in date order and counts those due today or earlier. This is an in-app checklist, shown when the local page is open; it does not send system notifications or messages to employers. Rejected and dismissed statuses clear the next-action date.
 

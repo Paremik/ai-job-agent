@@ -519,6 +519,29 @@
       .brief-result p {
         overflow-wrap: anywhere;
       }
+      .brief-result label {
+        display: block;
+        font-weight: 700;
+        margin: 14px 0 6px;
+      }
+      .brief-result textarea {
+        display: block;
+        width: 100%;
+        min-height: 230px;
+        padding: 12px;
+        border: 1px solid #b7c9be;
+        border-radius: 8px;
+        background: #fff;
+        color: #172334;
+        font:
+          13px/1.5 Consolas,
+          "Courier New",
+          monospace;
+        resize: vertical;
+      }
+      .brief-result .draft-links {
+        margin: 10px 0;
+      }
       .pagination {
         display: flex;
         gap: 10px;
@@ -1228,60 +1251,92 @@
         }
         return wrap;
       }
-      function briefControl(row) {
+      function draftControl(row) {
         const wrap = node("div", "brief-control");
         wrap.append(
           node(
             "p",
             "muted",
-            "Для нового CV и письма сначала собери проверенные факты и требования. Готовый текст требует отдельной проверки.",
+            "Создай локальные черновики из подтверждённых фактов. Проверь объявление и весь текст перед откликом.",
           ),
         );
-        const button = node("button", "", "Собрать задание для CV и письма");
+        const button = node("button", "", "Создать или открыть CV и письмо");
         button.type = "button";
         button.disabled = !state.ready;
         const result = node("div", "brief-result");
         button.addEventListener("click", async () => {
           button.disabled = true;
-          result.replaceChildren(node("span", "", "Собираю сведения…"));
+          result.replaceChildren(node("span", "", "Готовлю черновики…"));
           try {
-            const response = await fetch("/api/application-brief", {
+            const response = await fetch("/api/application-draft", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ jobId: row.id }),
             });
             const saved = await response.json();
-            if (!response.ok) throw new Error(saved.error || "Не удалось создать задание");
-            const prompt =
-              "Подготовь индивидуальное CV и подробное польское письмо для вакансии " +
-              row.company +
-              " — " +
-              row.title +
-              ". Используй задание private/application-briefs/" +
-              row.id +
-              ".md в проекте ai-job-agent-clean. Проверь актуальность объявления и не добавляй неподтверждённые факты. Сохрани пакет локально для моей проверки, не отправляй работодателю.";
-            const copy = node("button", "brief-copy", "Скопировать запрос для Codex");
-            copy.type = "button";
-            copy.addEventListener("click", async () => {
+            if (!response.ok) throw new Error(saved.error || "Не удалось создать черновики");
+            const cv = node("textarea");
+            cv.value = saved.draft.cvText;
+            cv.setAttribute("aria-label", "Текст CV");
+            const letter = node("textarea");
+            letter.value = saved.draft.letterText;
+            letter.setAttribute("aria-label", "Текст письма");
+            const save = node("button", "brief-copy", "Сохранить правки");
+            save.type = "button";
+            const message = node(
+              "p",
+              "muted",
+              "Черновики сохранены только на этом компьютере. Работодатель их не получил.",
+            );
+            save.addEventListener("click", async () => {
+              save.disabled = true;
+              message.textContent = "Сохраняю…";
               try {
-                await navigator.clipboard.writeText(prompt);
-                copy.textContent = "Скопировано";
-              } catch {
-                copy.textContent = "Выдели текст ниже и скопируй вручную";
+                const updated = await fetch("/api/application-draft", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    jobId: row.id,
+                    cvText: cv.value,
+                    letterText: letter.value,
+                  }),
+                });
+                if (!updated.ok) throw new Error("Не удалось сохранить правки");
+                message.textContent =
+                  "Правки сохранены. Обнови окно печати CV, если оно уже открыто.";
+              } catch (error) {
+                message.textContent = error.message || "Не удалось сохранить правки.";
+              } finally {
+                save.disabled = false;
               }
             });
+            const links = node("div", "draft-links");
+            links.append(
+              localLink("Открыть CV для печати/PDF", "application-drafts/" + row.id + "/cv"),
+              localLink("Открыть письмо", "application-drafts/" + row.id + "/letter.txt"),
+            );
+            const notes = node("ul");
+            for (const note of saved.draft.reviewNotes) notes.append(node("li", "", note));
             result.replaceChildren(
-              localLink("Открыть задание с фактами", saved.path),
-              node(
-                "p",
-                "",
-                "Задание сохранено приватно. Скопируй запрос и отправь его в этот чат, чтобы я подготовил CV и письмо.",
-              ),
-              copy,
-              node("p", "", prompt),
+              saved.stale
+                ? node(
+                    "p",
+                    "save-note",
+                    "Данные вакансии или профиля изменились. Существующие правки сохранены; проверь их заново.",
+                  )
+                : node("p", "muted", "Черновики по шаблону. Можно редактировать прямо здесь."),
+              node("label", "", "CV на польском"),
+              cv,
+              node("label", "", "Письмо на польском"),
+              letter,
+              save,
+              links,
+              message,
+              node("h4", "", "Что проверить перед отправкой"),
+              notes,
             );
           } catch (error) {
-            result.replaceChildren(node("p", "", error.message || "Не удалось создать задание."));
+            result.replaceChildren(node("p", "", error.message || "Не удалось создать черновики."));
           } finally {
             button.disabled = !state.ready;
           }
@@ -1333,7 +1388,7 @@
           links.append(externalLink("Проверенный источник ↗", row.sourceUrl, "secondary-link"));
         detail.append(links);
         detail.append(section("Подготовленные материалы", packageLinks(row.url)));
-        detail.append(briefControl(row));
+        detail.append(draftControl(row));
         detail.append(
           section(
             "Почему в этой очереди",
