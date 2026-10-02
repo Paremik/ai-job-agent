@@ -31,6 +31,7 @@ describe("local dashboard data", () => {
       },
       [
         {
+          folder: "2026-10-01",
           key: "one",
           company: "Example",
           role: "Junior",
@@ -45,6 +46,8 @@ describe("local dashboard data", () => {
     expect(data.rows[0]?.requirements).toEqual([{ importance: "required", text: "React" }]);
     expect(data.rows[0]?.site).toBe("example.com");
     expect(data.rows[0]?.reasons).toEqual(["Confirm language"]);
+    expect(data.drafts[0]?.cv).toBe("applications/2026-10-01/cv.pdf");
+    expect(data.drafts[0]?.title).toBe("Junior");
     expect(JSON.stringify(data)).not.toContain("profileHash");
     expect(JSON.stringify(data)).not.toContain("private text");
   });
@@ -80,12 +83,26 @@ describe("local dashboard data", () => {
     expect(() =>
       buildDashboardData(report, [
         {
+          folder: "2026-10-01",
           key: "one",
           company: "Example",
           role: "Junior",
           url: row.canonicalUrl,
           status: "draft_for_review",
           cvFile: "../private.pdf",
+        },
+      ]),
+    ).toThrow();
+    expect(() =>
+      buildDashboardData(report, [
+        {
+          folder: "../secret",
+          key: "one",
+          company: "Example",
+          role: "Junior",
+          url: row.canonicalUrl,
+          status: "draft_for_review",
+          cvFile: "cv.pdf",
         },
       ]),
     ).toThrow();

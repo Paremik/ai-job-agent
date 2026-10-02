@@ -849,6 +849,11 @@
         (char) => char.charCodeAt(0),
       );
       const data = JSON.parse(new TextDecoder().decode(bytes));
+      const draftsByUrl = new Map();
+      for (const draft of data.drafts) {
+        if (!draftsByUrl.has(draft.url)) draftsByUrl.set(draft.url, []);
+        draftsByUrl.get(draft.url).push(draft);
+      }
       const statusName = { review_now: "Проверить", clarify_first: "Уточнить", defer: "Отложено" };
       const workplaceName = {
         remote: "Удалённо",
@@ -1136,6 +1141,8 @@
           const saved = review(row);
           if (saved?.status)
             meta.append(node("span", "badge user-status", actionName[saved.status]));
+          if (draftsByUrl.has(row.url))
+            meta.append(node("span", "badge review_now", "CV подготовлено"));
           card.append(meta);
           card.addEventListener("click", () => {
             state.selected = row.id;
@@ -1175,6 +1182,25 @@
         const list = node("ul");
         for (const value of values) list.append(node("li", "", value));
         return list;
+      }
+      function packageLinks(url) {
+        const drafts = draftsByUrl.get(url) || [];
+        const wrap = node("div");
+        if (!drafts.length) {
+          wrap.append(node("p", "", "Для этой вакансии пакет пока не подготовлен."));
+          return wrap;
+        }
+        for (const draft of drafts) {
+          const item = node("div", "");
+          item.append(node("p", "muted", "Пакет от " + draft.folder + " · " + draft.role));
+          const links = node("div", "draft-links");
+          links.append(localLink("CV PDF", draft.cv));
+          if (draft.message) links.append(localLink("Письмо", draft.message));
+          if (draft.certificate) links.append(localLink("Сертификат", draft.certificate));
+          item.append(links);
+          wrap.append(item);
+        }
+        return wrap;
       }
       function renderDetail() {
         const row = data.rows.find((item) => item.id === state.selected);
@@ -1219,6 +1245,7 @@
         if (row.sourceUrl && row.sourceUrl !== row.url)
           links.append(externalLink("Проверенный источник ↗", row.sourceUrl, "secondary-link"));
         detail.append(links);
+        detail.append(section("Подготовленные материалы", packageLinks(row.url)));
         detail.append(
           section(
             "Почему в этой очереди",
@@ -1277,6 +1304,13 @@
           if (draft.certificate) links.append(localLink("Сертификат", draft.certificate));
           links.append(externalLink("Вакансия ↗", draft.url, ""));
           card.append(links);
+          const saved = review(draft);
+          const controls = node("div", "action-bar");
+          controls.append(starButton(draft));
+          card.append(controls, actionButtons(draft));
+          if (saved?.nextActionDate) card.append(followUpBadge(saved));
+          if (saved?.note) card.append(node("p", "note-preview", saved.note));
+          card.append(actionEditor(draft, true));
           grid.append(card);
         }
       }
@@ -1305,6 +1339,7 @@
           const links = node("div", "detail-links");
           links.append(externalLink("Открыть вакансию ↗", record.url, "secondary-link"));
           entry.append(links, starButton(record), actionButtons(record));
+          if (draftsByUrl.has(record.url)) entry.append(packageLinks(record.url));
           if (record.nextActionDate) entry.append(followUpBadge(record));
           if (record.note) entry.append(node("p", "note-preview", record.note));
           entry.append(actionEditor(record, true));
@@ -1339,6 +1374,7 @@
           const links = node("div", "detail-links");
           links.append(externalLink("Открыть вакансию ↗", record.url, "secondary-link"));
           entry.append(links, starButton(record), actionButtons(record));
+          if (draftsByUrl.has(record.url)) entry.append(packageLinks(record.url));
           const clear = node("button", "toggle", "Снять дату");
           clear.type = "button";
           clear.disabled = !state.ready || state.busy;

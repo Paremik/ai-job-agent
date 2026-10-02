@@ -44,8 +44,10 @@ const Report = z.object({
 });
 
 const SafeFileName = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
+const SafeFolder = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Tracker = z.array(
   z.object({
+    folder: SafeFolder,
     key: SafeFileName,
     company: z.string(),
     role: z.string(),
@@ -116,16 +118,18 @@ export function buildDashboardData(reportInput: unknown, trackerInput: unknown) 
   };
   const drafts = tracker.map((item) => ({
     key: item.key,
+    folder: item.folder,
     company: plain(item.company, 120),
     role: plain(item.role, 180),
+    title: plain(item.role, 180),
     url: item.url,
     status: plain(item.status, 50),
-    cv: `applications/2026-10-01/${encodeURIComponent(item.cvFile)}`,
+    cv: `applications/${item.folder}/${encodeURIComponent(item.cvFile)}`,
     message: item.messageFile
-      ? `applications/2026-10-01/${encodeURIComponent(item.messageFile)}`
+      ? `applications/${item.folder}/${encodeURIComponent(item.messageFile)}`
       : null,
     certificate: item.attachments?.find((name) => name.includes("certificate"))
-      ? `applications/2026-10-01/${encodeURIComponent(item.attachments.find((name) => name.includes("certificate"))!)}`
+      ? `applications/${item.folder}/${encodeURIComponent(item.attachments.find((name) => name.includes("certificate"))!)}`
       : null,
   }));
   return { generatedAt: report.generatedAt, counts, rows, drafts };
