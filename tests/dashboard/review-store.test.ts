@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   recentApplications,
+  scheduledActions,
   updateReviewStore,
-  type ReviewStore,
+  ReviewStore,
 } from "../../src/dashboard/review-store.js";
 
 const job = { url: "https://example.com/job/1", title: "Developer", company: "Example" };
@@ -78,5 +79,52 @@ describe("dashboard review store", () => {
       "2026-10-02T09:00:00.000Z",
     );
     expect(recentApplications(reset)).toEqual([]);
+  });
+
+  it("schedules a check seven days after sending and keeps notes on status changes", () => {
+    const sent = updateReviewStore(
+      empty,
+      { ...job, status: "sent", starred: false, note: "CV and certificate sent" },
+      "2026-10-02T08:00:00.000Z",
+    );
+    expect(sent.records[0]?.nextActionDate).toBe("2026-10-09");
+    const replied = updateReviewStore(
+      sent,
+      { ...job, status: "reply", starred: false },
+      "2026-10-03T08:00:00.000Z",
+    );
+    expect(replied.records[0]?.note).toBe("CV and certificate sent");
+    expect(scheduledActions(replied)[0]?.url).toBe(job.url);
+    const rejected = updateReviewStore(
+      replied,
+      { ...job, status: "rejected", starred: false },
+      "2026-10-04T08:00:00.000Z",
+    );
+    expect(scheduledActions(rejected)).toEqual([]);
+    expect(recentApplications(rejected)).toHaveLength(1);
+  });
+
+  it("accepts old saved records and allows a reminder to be cleared", () => {
+    const oldRecord = {
+      ...job,
+      status: "sent" as const,
+      starred: true,
+      updatedAt: "2026-10-02T08:00:00.000Z",
+      sentAt: "2026-10-02T08:00:00.000Z",
+    };
+    const oldStore = ReviewStore.parse({ version: 1, records: [oldRecord] });
+    expect(oldStore.records[0]?.note).toBe("");
+    expect(oldStore.records[0]?.nextActionDate).toBeNull();
+    const scheduled = updateReviewStore(
+      oldStore,
+      { ...job, status: "sent", starred: true, nextActionDate: "2026-10-15" },
+      "2026-10-03T08:00:00.000Z",
+    );
+    const cleared = updateReviewStore(
+      scheduled,
+      { ...job, status: "sent", starred: true, nextActionDate: null },
+      "2026-10-03T09:00:00.000Z",
+    );
+    expect(cleared.records[0]?.nextActionDate).toBeNull();
   });
 });

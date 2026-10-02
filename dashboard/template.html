@@ -428,6 +428,71 @@
       .archive-row .action-bar {
         margin: 9px 0 0;
       }
+      .follow-up {
+        background: #fff8df;
+        color: #73571b;
+        border-radius: 8px;
+        padding: 5px 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .follow-up.due {
+        background: #fce9df;
+        color: #983f2a;
+      }
+      .action-editor {
+        margin-top: 16px;
+        border-top: 1px solid #edf0eb;
+        padding-top: 14px;
+      }
+      .action-editor summary {
+        cursor: pointer;
+        color: #315942;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .action-editor label {
+        display: grid;
+        gap: 6px;
+        margin-top: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #53625a;
+      }
+      .action-editor input,
+      .action-editor textarea {
+        width: 100%;
+        border: 1px solid #dbe4db;
+        border-radius: 9px;
+        background: #fff;
+        color: #25392d;
+        padding: 9px 11px;
+        font: inherit;
+      }
+      .action-editor textarea {
+        min-height: 95px;
+        resize: vertical;
+      }
+      .action-editor button {
+        margin-top: 10px;
+        border: 0;
+        border-radius: 9px;
+        background: #235c3a;
+        color: #fff;
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .action-editor button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .note-preview {
+        color: #53625a;
+        font-size: 12px;
+        white-space: pre-wrap;
+        margin: 10px 0;
+      }
       .pagination {
         display: flex;
         gap: 10px;
@@ -651,6 +716,9 @@
             <button data-view="archive" type="button">
               Архив откликов <span class="nav-count" id="nav-archive">0</span>
             </button>
+            <button data-view="actions" type="button">
+              Следующие действия <span class="nav-count" id="nav-actions">0</span>
+            </button>
             <button data-view="drafts" type="button">
               Пакеты откликов <span class="nav-count" id="nav-drafts">0</span>
             </button>
@@ -757,6 +825,15 @@
               <strong>Последние 200 откликов</strong><span class="muted" id="archive-count"></span>
             </div>
             <div id="archive-list"></div>
+          </div>
+        </section>
+        <section id="actions-view" hidden>
+          <div class="panel">
+            <div class="panel-head">
+              <strong>Запланированные действия</strong
+              ><span class="muted" id="actions-count"></span>
+            </div>
+            <div id="actions-list"></div>
           </div>
         </section>
         <section id="drafts-view" hidden><div class="draft-grid" id="draft-grid"></div></section>
@@ -879,6 +956,8 @@
           company: row.company,
           status: patch.status === undefined ? before?.status || null : patch.status,
           starred: patch.starred === undefined ? before?.starred || false : patch.starred,
+          ...(patch.note === undefined ? {} : { note: patch.note }),
+          ...(patch.nextActionDate === undefined ? {} : { nextActionDate: patch.nextActionDate }),
         };
         try {
           const response = await fetch("/api/reviews", {
@@ -938,6 +1017,57 @@
           (item) => item.starred,
         ).length;
         byId("nav-archive").textContent = [...state.records.values()].filter(archived).length;
+        byId("nav-actions").textContent = scheduledRecords().length;
+      }
+
+      function localToday() {
+        const now = new Date();
+        return [
+          now.getFullYear(),
+          String(now.getMonth() + 1).padStart(2, "0"),
+          String(now.getDate()).padStart(2, "0"),
+        ].join("-");
+      }
+
+      function scheduledRecords() {
+        return [...state.records.values()]
+          .filter(
+            (record) =>
+              record.nextActionDate && ["planned", "sent", "reply"].includes(record.status),
+          )
+          .sort((a, b) => a.nextActionDate.localeCompare(b.nextActionDate));
+      }
+
+      function followUpBadge(record) {
+        const due = record.nextActionDate <= localToday();
+        const label = due ? "Пора действовать: " : "Следующее действие: ";
+        return node("span", "follow-up" + (due ? " due" : ""), label + record.nextActionDate);
+      }
+
+      function actionEditor(row, collapsed = false) {
+        const saved = review(row);
+        const editor = node("details", "action-editor");
+        editor.open = !collapsed;
+        editor.append(node("summary", "", "Заметка и дата следующего действия"));
+        const dateLabel = node("label", "", "Когда вернуться к вакансии");
+        const date = node("input");
+        date.type = "date";
+        date.value = saved?.nextActionDate || "";
+        dateLabel.append(date);
+        const noteLabel = node("label", "", "Заметка для себя");
+        const note = node("textarea");
+        note.maxLength = 2000;
+        note.placeholder = "Например: отправил CV и сертификат; уточнить график";
+        note.value = saved?.note || "";
+        noteLabel.append(note);
+        const save = node("button", "", "Сохранить заметку и дату");
+        save.type = "button";
+        save.disabled = !state.ready || state.busy;
+        save.addEventListener("click", () =>
+          saveReview(row, { note: note.value, nextActionDate: date.value || null }),
+        );
+        editor.append(dateLabel, noteLabel, save);
+        return editor;
       }
 
       function filteredRows() {
@@ -1082,6 +1212,8 @@
               "Отклик отмечен: " + new Date(saved.sentAt).toLocaleString("ru-RU"),
             ),
           );
+        if (saved?.nextActionDate) detail.append(followUpBadge(saved));
+        detail.append(actionEditor(row));
         const links = node("div", "detail-links");
         links.append(externalLink("Открыть объявление ↗", row.url, "primary-link"));
         if (row.sourceUrl && row.sourceUrl !== row.url)
@@ -1173,6 +1305,47 @@
           const links = node("div", "detail-links");
           links.append(externalLink("Открыть вакансию ↗", record.url, "secondary-link"));
           entry.append(links, starButton(record), actionButtons(record));
+          if (record.nextActionDate) entry.append(followUpBadge(record));
+          if (record.note) entry.append(node("p", "note-preview", record.note));
+          entry.append(actionEditor(record, true));
+          list.append(entry);
+        }
+      }
+
+      function renderActions() {
+        const records = scheduledRecords();
+        const dueCount = records.filter((record) => record.nextActionDate <= localToday()).length;
+        byId("actions-count").textContent =
+          dueCount + " требуют внимания · " + records.length + " запланировано";
+        const list = byId("actions-list");
+        list.replaceChildren();
+        if (!records.length) {
+          list.append(
+            node(
+              "div",
+              "empty",
+              "Пока нет запланированных действий. Укажи дату в карточке вакансии или в архиве.",
+            ),
+          );
+          return;
+        }
+        for (const record of records) {
+          const entry = node("article", "archive-row");
+          entry.append(
+            node("span", "job-company", record.company),
+            node("strong", "", record.title),
+            followUpBadge(record),
+          );
+          const links = node("div", "detail-links");
+          links.append(externalLink("Открыть вакансию ↗", record.url, "secondary-link"));
+          entry.append(links, starButton(record), actionButtons(record));
+          const clear = node("button", "toggle", "Снять дату");
+          clear.type = "button";
+          clear.disabled = !state.ready || state.busy;
+          clear.addEventListener("click", () => saveReview(record, { nextActionDate: null }));
+          entry.append(clear);
+          if (record.note) entry.append(node("p", "note-preview", record.note));
+          entry.append(actionEditor(record, true));
           list.append(entry);
         }
       }
@@ -1183,21 +1356,26 @@
           button.classList.toggle("active", button.dataset.view === state.view);
         byId("jobs-view").hidden = !["jobs", "important"].includes(state.view);
         byId("archive-view").hidden = state.view !== "archive";
+        byId("actions-view").hidden = state.view !== "actions";
         byId("drafts-view").hidden = state.view !== "drafts";
         byId("page-title").textContent = {
           jobs: "Вакансии",
           important: "Важные вакансии",
           archive: "Архив откликов",
+          actions: "Следующие действия",
           drafts: "Пакеты откликов",
         }[state.view];
         byId("page-subtitle").textContent =
-          state.view === "archive"
-            ? "Последние 200 отправленных заявок остаются здесь после обновления списка вакансий."
-            : state.view === "drafts"
-              ? "CV, письма и их текущие статусы в локальном журнале."
-              : "Сравнение объявлений с твоим профилем";
+          state.view === "actions"
+            ? "Что пора проверить и какие отклики требуют следующего шага."
+            : state.view === "archive"
+              ? "Последние 200 отправленных заявок остаются здесь после обновления списка вакансий."
+              : state.view === "drafts"
+                ? "CV, письма и их текущие статусы в локальном журнале."
+                : "Сравнение объявлений с твоим профилем";
         if (["jobs", "important"].includes(state.view)) renderList();
         else if (state.view === "archive") renderArchive();
+        else if (state.view === "actions") renderActions();
         else renderDrafts();
       }
       for (const button of document.querySelectorAll("[data-view]"))
