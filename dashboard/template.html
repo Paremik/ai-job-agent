@@ -19,7 +19,8 @@
         min-width: 320px;
       }
       button,
-      input {
+      input,
+      select {
         font: inherit;
       }
       button {
@@ -216,6 +217,41 @@
         background: #e3f5dc;
         border-color: #9bd295;
         color: #285136;
+      }
+      .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .filter-field {
+        display: grid;
+        gap: 5px;
+        flex: 1 1 150px;
+        min-width: 140px;
+        color: #5b6d60;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .filter-field input,
+      .filter-field select {
+        width: 100%;
+        height: 42px;
+        border: 1px solid #dbe4db;
+        border-radius: 10px;
+        background: #fff;
+        color: #25392d;
+        padding: 0 11px;
+        outline: none;
+      }
+      .filter-field input:focus,
+      .filter-field select:focus {
+        border-color: #4d9a65;
+        box-shadow: 0 0 0 3px #4d9a6526;
+      }
+      .filter-reset {
+        align-self: end;
       }
       .workspace {
         display: grid;
@@ -658,6 +694,44 @@
               Есть совпадения навыков
             </button>
           </div>
+          <div class="filter-row" aria-label="Дополнительные фильтры вакансий">
+            <label class="filter-field"
+              >Город
+              <input
+                id="filter-city"
+                type="search"
+                placeholder="Например, Opole"
+                autocomplete="off"
+              />
+            </label>
+            <label class="filter-field"
+              >Формат работы
+              <select id="filter-workplace">
+                <option value="all">Любой</option>
+                <option value="remote">Удалённо</option>
+                <option value="hybrid">Гибрид</option>
+                <option value="onsite">На месте</option>
+                <option value="unknown">Не указан</option>
+              </select>
+            </label>
+            <label class="filter-field"
+              >Сайт вакансии
+              <select id="filter-site">
+                <option value="all">Все сайты</option>
+              </select>
+            </label>
+            <label class="filter-field"
+              >Мой статус
+              <select id="filter-stage">
+                <option value="all">Все</option>
+                <option value="new">Без статуса</option>
+                <option value="planned">В планах</option>
+              </select>
+            </label>
+            <button class="toggle filter-reset" id="reset-filters" type="button">
+              Сбросить фильтры
+            </button>
+          </div>
           <div class="toolbar" aria-label="Фильтр очереди">
             <button class="toggle active" data-status="all" type="button">Все</button
             ><button class="toggle" data-status="review_now" type="button">Проверить сейчас</button
@@ -709,6 +783,10 @@
         view: "jobs",
         status: "all",
         query: "",
+        city: "",
+        workplace: "all",
+        site: "all",
+        stage: "all",
         skills: false,
         page: 1,
         selected: null,
@@ -752,6 +830,13 @@
       byId("count-defer").textContent = data.counts.defer;
       byId("report-date").textContent =
         "Отчёт: " + new Date(data.generatedAt).toLocaleString("ru-RU");
+      const siteCounts = new Map();
+      for (const row of data.rows) siteCounts.set(row.site, (siteCounts.get(row.site) || 0) + 1);
+      for (const [site, count] of [...siteCounts].sort((a, b) => a[0].localeCompare(b[0]))) {
+        const option = node("option", "", site + " (" + count + ")");
+        option.value = site;
+        byId("filter-site").append(option);
+      }
 
       const actionName = {
         planned: "В планах",
@@ -857,6 +942,7 @@
 
       function filteredRows() {
         const query = normal(state.query);
+        const city = normal(state.city.trim());
         return data.rows.filter(
           (row) =>
             (state.view !== "important" || review(row)?.starred) &&
@@ -867,6 +953,13 @@
             (state.status === "all" ||
               state.status === "dismissed" ||
               row.status === state.status) &&
+            (!city || normal(row.location).includes(city)) &&
+            (state.workplace === "all" || row.workplaceType === state.workplace) &&
+            (state.site === "all" || row.site === state.site) &&
+            (state.stage === "all" ||
+              (state.stage === "new"
+                ? !review(row)?.status
+                : review(row)?.status === state.stage)) &&
             (!state.skills || row.matchedSkills.length > 0) &&
             (!query ||
               normal(
@@ -907,6 +1000,8 @@
             node("span", "badge " + row.status, statusName[row.status]),
             node("span", "dot"),
             node("span", "", row.location),
+            node("span", "dot"),
+            node("span", "", row.site),
           );
           const saved = review(row);
           if (saved?.status)
@@ -966,7 +1061,11 @@
           node(
             "p",
             "detail-sub",
-            row.location + " · " + (workplaceName[row.workplaceType] || "Формат не указан"),
+            row.location +
+              " · " +
+              (workplaceName[row.workplaceType] || "Формат не указан") +
+              " · " +
+              row.site,
           ),
         );
         const saved = review(row);
@@ -1128,6 +1227,37 @@
         event.currentTarget.classList.toggle("active", state.skills);
         event.currentTarget.setAttribute("aria-pressed", String(state.skills));
         state.page = 1;
+        renderList();
+      });
+      for (const [id, key, eventName] of [
+        ["filter-city", "city", "input"],
+        ["filter-workplace", "workplace", "change"],
+        ["filter-site", "site", "change"],
+        ["filter-stage", "stage", "change"],
+      ])
+        byId(id).addEventListener(eventName, (event) => {
+          state[key] = event.target.value;
+          state.page = 1;
+          renderList();
+        });
+      byId("reset-filters").addEventListener("click", () => {
+        state.query = "";
+        state.city = "";
+        state.workplace = "all";
+        state.site = "all";
+        state.stage = "all";
+        state.skills = false;
+        state.status = "all";
+        state.page = 1;
+        byId("search").value = "";
+        byId("filter-city").value = "";
+        byId("filter-workplace").value = "all";
+        byId("filter-site").value = "all";
+        byId("filter-stage").value = "all";
+        byId("skill-toggle").classList.remove("active");
+        byId("skill-toggle").setAttribute("aria-pressed", "false");
+        for (const item of document.querySelectorAll("[data-status]"))
+          item.classList.toggle("active", item.dataset.status === "all");
         renderList();
       });
       renderView();

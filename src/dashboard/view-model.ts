@@ -61,6 +61,20 @@ function plain(value: string, limit = 400): string {
   return value.replace(/\s+/g, " ").trim().slice(0, limit);
 }
 
+function jobSite(value: string): string {
+  const host = new URL(value).hostname.toLowerCase();
+  const isSite = (domain: string) => host === domain || host.endsWith(`.${domain}`);
+  if (isSite("greenhouse.io")) return "Greenhouse";
+  if (isSite("lever.co")) return "Lever";
+  if (isSite("smartrecruiters.com")) return "SmartRecruiters";
+  if (isSite("jooble.org")) return "Jooble";
+  if (isSite("justjoin.it")) return "Just Join IT";
+  if (isSite("nofluffjobs.com")) return "No Fluff Jobs";
+  if (isSite("solid.jobs")) return "Solid.jobs";
+  if (isSite("bulldogjob.pl")) return "Bulldogjob";
+  return host;
+}
+
 export function buildDashboardData(reportInput: unknown, trackerInput: unknown) {
   const report = Report.parse(reportInput);
   const tracker = Tracker.parse(trackerInput);
@@ -69,6 +83,7 @@ export function buildDashboardData(reportInput: unknown, trackerInput: unknown) 
     title: plain(row.title, 180),
     company: plain(row.company, 120),
     url: row.canonicalUrl,
+    site: jobSite(row.canonicalUrl),
     sourceUrl: row.descriptionReview?.sourceUrl ?? null,
     location: plain(row.location ?? "Место не указано", 140),
     workplaceType: row.workplaceType,

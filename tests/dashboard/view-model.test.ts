@@ -43,9 +43,21 @@ describe("local dashboard data", () => {
     );
     expect(data.counts).toEqual({ all: 1, review_now: 0, clarify_first: 1, defer: 0 });
     expect(data.rows[0]?.requirements).toEqual([{ importance: "required", text: "React" }]);
+    expect(data.rows[0]?.site).toBe("example.com");
     expect(data.rows[0]?.reasons).toEqual(["Confirm language"]);
     expect(JSON.stringify(data)).not.toContain("profileHash");
     expect(JSON.stringify(data)).not.toContain("private text");
+  });
+
+  it("labels known vacancy sites from their public URLs", () => {
+    const data = buildDashboardData(
+      {
+        generatedAt: "2026-10-01T00:00:00Z",
+        rows: [{ ...row, canonicalUrl: "https://pl.jooble.org/desc/123" }],
+      },
+      [],
+    );
+    expect(data.rows[0]?.site).toBe("Jooble");
   });
 
   it("refuses approval-enabled rows and unsafe URLs or file paths", () => {
