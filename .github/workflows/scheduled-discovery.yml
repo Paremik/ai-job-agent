@@ -1,0 +1,45 @@
+name: Scheduled job discovery
+
+on:
+  schedule:
+    - cron: "17 10,22 * * *"
+      timezone: Europe/Warsaw
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: job-discovery
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check database configuration
+        id: config
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "DATABASE_URL is not configured; discovery was skipped." >> "$GITHUB_STEP_SUMMARY"
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then exit 1; fi
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.config.outputs.ready == 'true'
+      - uses: pnpm/setup@v3
+        if: steps.config.outputs.ready == 'true'
+        with:
+          runtime: node@24
+          cache: true
+          require-lockfile: true
+      - name: Discover public Polish IT boards
+        if: steps.config.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm discover:boards

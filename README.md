@@ -18,6 +18,8 @@ For a vacancy without a package, choose **Создать или открыть C
 
 See [local dashboard details](docs/local-dashboard.md) and the other documents in `docs/` for the current pipeline and its limitations.
 
+Public Polish boards can also be refreshed on [a GitHub Actions schedule](docs/scheduled-discovery.md) after configuring a database secret. The schedule does not use the Jooble API key.
+
 ## Checks
 
 GitHub Actions runs these checks on pushes to `main` and pull requests. The workflow uses no database credentials or private candidate files and does not fetch jobs or send applications.
