@@ -493,6 +493,32 @@
         white-space: pre-wrap;
         margin: 10px 0;
       }
+      .brief-control {
+        margin-top: 14px;
+      }
+      .brief-control > button,
+      .brief-control .brief-copy {
+        border: 0;
+        border-radius: 9px;
+        background: #235c3a;
+        color: #fff;
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .brief-control button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .brief-result {
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #53625a;
+      }
+      .brief-result p {
+        overflow-wrap: anywhere;
+      }
       .pagination {
         display: flex;
         gap: 10px;
@@ -1202,6 +1228,67 @@
         }
         return wrap;
       }
+      function briefControl(row) {
+        const wrap = node("div", "brief-control");
+        wrap.append(
+          node(
+            "p",
+            "muted",
+            "Для нового CV и письма сначала собери проверенные факты и требования. Готовый текст требует отдельной проверки.",
+          ),
+        );
+        const button = node("button", "", "Собрать задание для CV и письма");
+        button.type = "button";
+        button.disabled = !state.ready;
+        const result = node("div", "brief-result");
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          result.replaceChildren(node("span", "", "Собираю сведения…"));
+          try {
+            const response = await fetch("/api/application-brief", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ jobId: row.id }),
+            });
+            const saved = await response.json();
+            if (!response.ok) throw new Error(saved.error || "Не удалось создать задание");
+            const prompt =
+              "Подготовь индивидуальное CV и подробное польское письмо для вакансии " +
+              row.company +
+              " — " +
+              row.title +
+              ". Используй задание private/application-briefs/" +
+              row.id +
+              ".md в проекте ai-job-agent-clean. Проверь актуальность объявления и не добавляй неподтверждённые факты. Сохрани пакет локально для моей проверки, не отправляй работодателю.";
+            const copy = node("button", "brief-copy", "Скопировать запрос для Codex");
+            copy.type = "button";
+            copy.addEventListener("click", async () => {
+              try {
+                await navigator.clipboard.writeText(prompt);
+                copy.textContent = "Скопировано";
+              } catch {
+                copy.textContent = "Выдели текст ниже и скопируй вручную";
+              }
+            });
+            result.replaceChildren(
+              localLink("Открыть задание с фактами", saved.path),
+              node(
+                "p",
+                "",
+                "Задание сохранено приватно. Скопируй запрос и отправь его в этот чат, чтобы я подготовил CV и письмо.",
+              ),
+              copy,
+              node("p", "", prompt),
+            );
+          } catch (error) {
+            result.replaceChildren(node("p", "", error.message || "Не удалось создать задание."));
+          } finally {
+            button.disabled = !state.ready;
+          }
+        });
+        wrap.append(button, result);
+        return wrap;
+      }
       function renderDetail() {
         const row = data.rows.find((item) => item.id === state.selected);
         const detail = byId("detail");
@@ -1246,6 +1333,7 @@
           links.append(externalLink("Проверенный источник ↗", row.sourceUrl, "secondary-link"));
         detail.append(links);
         detail.append(section("Подготовленные материалы", packageLinks(row.url)));
+        detail.append(briefControl(row));
         detail.append(
           section(
             "Почему в этой очереди",

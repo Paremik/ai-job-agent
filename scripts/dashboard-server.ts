@@ -1,13 +1,15 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { ReviewChange, ReviewStore, updateReviewStore } from "../src/dashboard/review-store.js";
+import { BriefRequest, buildApplicationBrief } from "../src/dashboard/application-brief.js";
 import { buildDashboard } from "./build-dashboard.js";
 
 const privateFolder = new URL("../private/", import.meta.url);
 const storePath = new URL("dashboard-reviews.json", privateFolder);
-const port = 4173;
+const port = Number(process.env.DASHBOARD_PORT ?? 4173);
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid dashboard port");
 const origin = `http://127.0.0.1:${port}`;
 let pendingWrite: Promise<unknown> = Promise.resolve();
 
@@ -72,6 +74,39 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     json(response, 200, { record: await write });
     return;
   }
+  if (pathname === "/api/application-brief" && request.method === "POST") {
+    if (
+      request.headers.origin !== origin ||
+      !request.headers["content-type"]?.startsWith("application/json")
+    ) {
+      json(response, 403, { error: "Invalid origin or content type" });
+      return;
+    }
+    const { jobId } = BriefRequest.parse(await readBody(request));
+    const report = JSON.parse(
+      await readFile(new URL("comparison-report.json", privateFolder), "utf8"),
+    );
+    const profile = JSON.parse(
+      await readFile(new URL("candidate-profile.json", privateFolder), "utf8"),
+    );
+    let markdown: string;
+    try {
+      markdown = buildApplicationBrief(report, profile, jobId, new Date().toISOString()).markdown;
+    } catch (error) {
+      if (error instanceof Error && /Профиль изменился|Вакансия отсутствует/.test(error.message)) {
+        json(response, 409, { error: error.message });
+        return;
+      }
+      throw error;
+    }
+    const folder = new URL("application-briefs/", privateFolder);
+    await mkdir(folder, { recursive: true });
+    const temporary = new URL(`${jobId}-${randomUUID()}.tmp`, folder);
+    await writeFile(temporary, markdown, { flag: "wx" });
+    await rename(temporary, new URL(`${jobId}.md`, folder));
+    json(response, 200, { path: `application-briefs/${jobId}.md` });
+    return;
+  }
   if (request.method !== "GET") {
     json(response, 405, { error: "Method not allowed" });
     return;
@@ -81,6 +116,11 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   if (pathname === "/" || pathname === "/dashboard.html") {
     file = new URL("dashboard.html", privateFolder);
   } else {
+    const brief = /^\/application-briefs\/([0-9a-fA-F-]{36})\.md$/.exec(pathname);
+    if (brief) {
+      file = new URL(`application-briefs/${brief[1]}.md`, privateFolder);
+      contentType = "text/plain; charset=utf-8";
+    }
     const match = /^\/applications\/(\d{4}-\d{2}-\d{2})\/([A-Za-z0-9][A-Za-z0-9._-]*)$/.exec(
       pathname,
     );
