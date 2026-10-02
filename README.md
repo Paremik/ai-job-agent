@@ -20,8 +20,11 @@ See [local dashboard details](docs/local-dashboard.md) and the other documents i
 
 ## Checks
 
+GitHub Actions runs these checks on pushes to `main` and pull requests. The workflow uses no database credentials or private candidate files and does not fetch jobs or send applications.
+
 ```powershell
 pnpm test
 pnpm typecheck
 pnpm lint
+pnpm format:check
 ```
