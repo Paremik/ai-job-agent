@@ -258,6 +258,34 @@
         padding: 15px 19px;
         display: block;
       }
+      .job-entry {
+        position: relative;
+        border-bottom: 1px solid #edf0eb;
+      }
+      .job-entry .job-card {
+        border-bottom: 0;
+        padding-right: 53px;
+      }
+      .star {
+        border: 1px solid #d9e4d9;
+        border-radius: 9px;
+        background: #fff;
+        color: #9aa69a;
+        font-size: 22px;
+        line-height: 1;
+        width: 32px;
+        height: 32px;
+      }
+      .star.active {
+        color: #e0a526;
+        background: #fff9e8;
+        border-color: #ead494;
+      }
+      .job-entry > .star {
+        position: absolute;
+        right: 14px;
+        top: 16px;
+      }
       .job-card:hover {
         background: #f7fbf6;
       }
@@ -315,6 +343,54 @@
       .badge.review_now {
         background: #e4f5e6;
         color: #287345;
+      }
+      .badge.user-status {
+        background: #e7edf8;
+        color: #365b94;
+      }
+      .action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 17px 0;
+      }
+      .action-bar button:not(.star) {
+        border: 1px solid #cbdccd;
+        border-radius: 9px;
+        background: #f4f9f3;
+        color: #245a39;
+        padding: 9px 11px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .action-bar button.selected {
+        background: #235c3a;
+        color: #fff;
+      }
+      .action-bar button:disabled,
+      .star:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .save-note {
+        color: #607366;
+        font-size: 12px;
+        min-height: 18px;
+      }
+      .archive-row {
+        border-bottom: 1px solid #edf0eb;
+        padding: 16px 19px;
+      }
+      .archive-row strong {
+        display: block;
+        margin: 4px 0;
+      }
+      .archive-row a {
+        color: #286542;
+        font-size: 12px;
+      }
+      .archive-row .action-bar {
+        margin: 9px 0 0;
       }
       .pagination {
         display: flex;
@@ -533,13 +609,19 @@
             <button data-view="jobs" class="active" type="button">
               Вакансии <span class="nav-count" id="nav-all">0</span>
             </button>
+            <button data-view="important" type="button">
+              ★ Важные <span class="nav-count" id="nav-important">0</span>
+            </button>
+            <button data-view="archive" type="button">
+              Архив откликов <span class="nav-count" id="nav-archive">0</span>
+            </button>
             <button data-view="drafts" type="button">
               Пакеты откликов <span class="nav-count" id="nav-drafts">0</span>
             </button>
           </nav>
         </div>
         <p class="sidebar-note">
-          Локальная панель для просмотра. Проверка и решение об отклике остаются за тобой.
+          Решения и отметки сохраняются на этом компьютере. Отклики отправляешь ты сам.
         </p>
       </aside>
       <main class="content">
@@ -555,6 +637,7 @@
           Здесь показан порядок проверки, а не оценка шанса получить работу. Перед откликом проверь
           актуальность вакансии, требования и условия у работодателя.
         </div>
+        <div class="notice" id="storage-notice" role="status" hidden></div>
         <section id="jobs-view">
           <div class="stats" aria-label="Сводка">
             <div class="stat"><strong id="count-all">0</strong><span>Всего вакансий</span></div>
@@ -580,6 +663,7 @@
             ><button class="toggle" data-status="review_now" type="button">Проверить сейчас</button
             ><button class="toggle" data-status="clarify_first" type="button">Уточнить</button
             ><button class="toggle" data-status="defer" type="button">Отложены</button>
+            <button class="toggle" data-status="dismissed" type="button">Отброшенные</button>
           </div>
           <div class="workspace">
             <section class="panel">
@@ -591,6 +675,14 @@
               <div class="pagination" id="pagination"></div>
             </section>
             <section class="panel detail" id="detail" aria-live="polite"></section>
+          </div>
+        </section>
+        <section id="archive-view" hidden>
+          <div class="panel">
+            <div class="panel-head">
+              <strong>Последние 200 откликов</strong><span class="muted" id="archive-count"></span>
+            </div>
+            <div id="archive-list"></div>
           </div>
         </section>
         <section id="drafts-view" hidden><div class="draft-grid" id="draft-grid"></div></section>
@@ -620,6 +712,9 @@
         skills: false,
         page: 1,
         selected: null,
+        records: new Map(),
+        ready: false,
+        busy: false,
       };
       const pageSize = 30;
       const byId = (id) => document.getElementById(id);
@@ -658,11 +753,120 @@
       byId("report-date").textContent =
         "Отчёт: " + new Date(data.generatedAt).toLocaleString("ru-RU");
 
+      const actionName = {
+        planned: "В планах",
+        sent: "Отправил",
+        reply: "Есть ответ",
+        rejected: "Получен отказ",
+        dismissed: "Отброшено",
+      };
+      const archived = (record) => Boolean(record?.sentAt);
+      const review = (row) => state.records.get(row.url);
+
+      function storageMessage(message) {
+        byId("storage-notice").textContent = message;
+        byId("storage-notice").hidden = !message;
+      }
+
+      async function loadReviews() {
+        try {
+          const response = await fetch("/api/reviews", { cache: "no-store" });
+          if (!response.ok) throw new Error("Хранилище недоступно");
+          const saved = await response.json();
+          state.records = new Map(saved.records.map((record) => [record.url, record]));
+          state.ready = true;
+          storageMessage("");
+        } catch {
+          storageMessage(
+            "Для сохранения отметок открой панель командой pnpm dashboard:start и перейди на http://127.0.0.1:4173. В этом режиме кнопки временно недоступны.",
+          );
+        }
+        renderView();
+      }
+
+      async function saveReview(row, patch) {
+        if (!state.ready || state.busy) return;
+        const before = review(row);
+        state.busy = true;
+        const change = {
+          url: row.url,
+          title: row.title,
+          company: row.company,
+          status: patch.status === undefined ? before?.status || null : patch.status,
+          starred: patch.starred === undefined ? before?.starred || false : patch.starred,
+        };
+        try {
+          const response = await fetch("/api/reviews", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(change),
+          });
+          if (!response.ok) throw new Error("Сохранение не удалось");
+          const saved = await response.json();
+          state.records.set(row.url, saved.record);
+          storageMessage("");
+        } catch {
+          storageMessage(
+            "Не удалось сохранить отметку. Проверь, работает ли локальная панель, и повтори действие.",
+          );
+        } finally {
+          state.busy = false;
+          renderView();
+        }
+      }
+
+      function starButton(row) {
+        const active = Boolean(review(row)?.starred);
+        const button = node("button", "star" + (active ? " active" : ""), active ? "★" : "☆");
+        button.type = "button";
+        button.title = active ? "Снять отметку важности" : "Отметить как важную";
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-pressed", String(active));
+        button.disabled = !state.ready || state.busy;
+        button.addEventListener("click", () => saveReview(row, { starred: !active }));
+        return button;
+      }
+
+      function actionButtons(row) {
+        const actions = node("div", "action-bar");
+        const current = review(row)?.status || null;
+        for (const [status, label] of [
+          ["planned", "В планах"],
+          ["sent", "Отправил"],
+          ["reply", "Есть ответ"],
+          ["rejected", "Получен отказ"],
+          ["dismissed", "Отбросить"],
+          [null, "Сбросить статус"],
+        ]) {
+          const button = node("button", current === status ? "selected" : "", label);
+          button.type = "button";
+          button.disabled = !state.ready || state.busy;
+          button.setAttribute("aria-pressed", String(current === status));
+          button.addEventListener("click", () => saveReview(row, { status }));
+          actions.append(button);
+        }
+        return actions;
+      }
+
+      function updateNavigationCounts() {
+        byId("nav-important").textContent = [...state.records.values()].filter(
+          (item) => item.starred,
+        ).length;
+        byId("nav-archive").textContent = [...state.records.values()].filter(archived).length;
+      }
+
       function filteredRows() {
         const query = normal(state.query);
         return data.rows.filter(
           (row) =>
-            (state.status === "all" || row.status === state.status) &&
+            (state.view !== "important" || review(row)?.starred) &&
+            (state.status === "dismissed"
+              ? review(row)?.status === "dismissed"
+              : state.view === "important" ||
+                (!archived(review(row)) && review(row)?.status !== "dismissed")) &&
+            (state.status === "all" ||
+              state.status === "dismissed" ||
+              row.status === state.status) &&
             (!state.skills || row.matchedSkills.length > 0) &&
             (!query ||
               normal(
@@ -691,6 +895,7 @@
             node("div", "empty", "Ничего не найдено. Попробуй изменить поиск или фильтр."),
           );
         for (const row of slice) {
+          const entry = node("div", "job-entry");
           const card = node("button", "job-card" + (row.id === state.selected ? " active" : ""));
           card.type = "button";
           card.append(
@@ -703,13 +908,17 @@
             node("span", "dot"),
             node("span", "", row.location),
           );
+          const saved = review(row);
+          if (saved?.status)
+            meta.append(node("span", "badge user-status", actionName[saved.status]));
           card.append(meta);
           card.addEventListener("click", () => {
             state.selected = row.id;
             renderList();
             renderDetail();
           });
-          list.append(card);
+          entry.append(card, starButton(row));
+          list.append(entry);
         }
         byId("results-count").textContent = rows.length + " найдено";
         const pager = byId("pagination");
@@ -760,6 +969,20 @@
             row.location + " · " + (workplaceName[row.workplaceType] || "Формат не указан"),
           ),
         );
+        const saved = review(row);
+        const controls = node("div", "action-bar");
+        controls.append(starButton(row));
+        if (saved?.status)
+          controls.append(node("span", "badge user-status", actionName[saved.status]));
+        detail.append(controls, actionButtons(row));
+        if (saved?.sentAt)
+          detail.append(
+            node(
+              "p",
+              "save-note",
+              "Отклик отмечен: " + new Date(saved.sentAt).toLocaleString("ru-RU"),
+            ),
+          );
         const links = node("div", "detail-links");
         links.append(externalLink("Открыть объявление ↗", row.url, "primary-link"));
         if (row.sourceUrl && row.sourceUrl !== row.url)
@@ -808,7 +1031,11 @@
             node(
               "span",
               "badge clarify_first",
-              draft.status === "draft_for_review" ? "Черновик для проверки" : draft.status,
+              state.records.get(draft.url)?.status
+                ? actionName[state.records.get(draft.url).status]
+                : draft.status === "draft_for_review"
+                  ? "Черновик для проверки"
+                  : draft.status,
             ),
             node("h2", "", draft.company),
             node("p", "", draft.role),
@@ -823,22 +1050,64 @@
         }
       }
 
+      function renderArchive() {
+        const records = [...state.records.values()]
+          .filter(archived)
+          .sort((a, b) => b.sentAt.localeCompare(a.sentAt))
+          .slice(0, 200);
+        byId("archive-count").textContent =
+          records.length + " из " + [...state.records.values()].filter(archived).length;
+        const list = byId("archive-list");
+        list.replaceChildren();
+        if (!records.length) {
+          list.append(node("div", "empty", "Здесь появятся вакансии после нажатия «Отправил»."));
+          return;
+        }
+        for (const record of records) {
+          const entry = node("article", "archive-row");
+          entry.append(
+            node("span", "job-company", record.company),
+            node("strong", "", record.title),
+            node("span", "badge user-status", actionName[record.status] || "Отклик отправлен"),
+            node("span", "muted", " · " + new Date(record.sentAt).toLocaleDateString("ru-RU")),
+          );
+          const links = node("div", "detail-links");
+          links.append(externalLink("Открыть вакансию ↗", record.url, "secondary-link"));
+          entry.append(links, starButton(record), actionButtons(record));
+          list.append(entry);
+        }
+      }
+
       function renderView() {
+        updateNavigationCounts();
         for (const button of document.querySelectorAll("[data-view]"))
           button.classList.toggle("active", button.dataset.view === state.view);
-        byId("jobs-view").hidden = state.view !== "jobs";
+        byId("jobs-view").hidden = !["jobs", "important"].includes(state.view);
+        byId("archive-view").hidden = state.view !== "archive";
         byId("drafts-view").hidden = state.view !== "drafts";
-        byId("page-title").textContent = state.view === "jobs" ? "Вакансии" : "Пакеты откликов";
+        byId("page-title").textContent = {
+          jobs: "Вакансии",
+          important: "Важные вакансии",
+          archive: "Архив откликов",
+          drafts: "Пакеты откликов",
+        }[state.view];
         byId("page-subtitle").textContent =
-          state.view === "jobs"
-            ? "Сравнение объявлений с твоим профилем"
-            : "CV, письма и их текущие статусы в локальном журнале.";
-        if (state.view === "jobs") renderList();
+          state.view === "archive"
+            ? "Последние 200 отправленных заявок остаются здесь после обновления списка вакансий."
+            : state.view === "drafts"
+              ? "CV, письма и их текущие статусы в локальном журнале."
+              : "Сравнение объявлений с твоим профилем";
+        if (["jobs", "important"].includes(state.view)) renderList();
+        else if (state.view === "archive") renderArchive();
         else renderDrafts();
       }
       for (const button of document.querySelectorAll("[data-view]"))
         button.addEventListener("click", () => {
           state.view = button.dataset.view;
+          state.page = 1;
+          state.status = "all";
+          for (const item of document.querySelectorAll("[data-status]"))
+            item.classList.toggle("active", item.dataset.status === "all");
           renderView();
         });
       for (const button of document.querySelectorAll("[data-status]"))
@@ -862,6 +1131,7 @@
         renderList();
       });
       renderView();
+      loadReviews();
     </script>
   </body>
 </html>

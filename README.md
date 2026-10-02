@@ -8,11 +8,11 @@ After setting up the existing database and private candidate profile:
 
 ```powershell
 pnpm match:profile
-pnpm dashboard:build
-Start-Process .\private\dashboard.html
+pnpm dashboard:start
+# Затем открой http://127.0.0.1:4173 в браузере
 ```
 
-The page shows the latest comparison report, search and review filters, job details, original links and prepared CV/letter drafts. Re-run the first two commands after importing new jobs or editing the candidate profile. The generated HTML and personal application files stay under Git-ignored `private/`.
+The page shows the latest comparison report, search and review filters, job details, original links and prepared CV/letter drafts. You can mark jobs as sent or dismissed, add a star, and review the latest 200 sent applications in the archive. Decisions are stored in Git-ignored `private/dashboard-reviews.json`. Re-run `pnpm match:profile` and restart the dashboard after importing new jobs or editing the candidate profile.
 
 See [local dashboard details](docs/local-dashboard.md) and the other documents in `docs/` for the current pipeline and its limitations.
 

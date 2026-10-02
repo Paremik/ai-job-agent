@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { buildDashboardData } from "../src/dashboard/view-model.js";
 
-async function main() {
+export async function buildDashboard() {
   const privateFolder = new URL("../private/", import.meta.url);
   const report = JSON.parse(
     await readFile(new URL("comparison-report.json", privateFolder), "utf8"),
@@ -23,9 +23,11 @@ async function main() {
   );
 }
 
-await main().catch(() => {
-  console.error(
-    "Не удалось создать панель. Сначала запусти pnpm match:profile и проверь локальный журнал откликов.",
-  );
-  process.exitCode = 1;
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  await buildDashboard().catch(() => {
+    console.error(
+      "Не удалось создать панель. Сначала запусти pnpm match:profile и проверь локальный журнал откликов.",
+    );
+    process.exitCode = 1;
+  });
+}
