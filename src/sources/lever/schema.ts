@@ -8,6 +8,7 @@ export const LeverJobSchema = z.object({
   categories: z
     .object({
       location: z.string().nullable().optional(),
+      allLocations: z.array(z.string()).optional(),
     })
     .nullable()
     .optional(),
@@ -30,6 +31,7 @@ export const LeverJobSchema = z.object({
   additionalPlain: z.string().optional(),
 
   workplaceType: z.string().optional(),
+  country: z.string().nullable().optional(),
 
   salaryRange: z
     .object({

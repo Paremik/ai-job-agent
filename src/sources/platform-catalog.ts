@@ -6,6 +6,12 @@ export const platforms = [
     note: "Пробный ручной сбор с выбранных досок работодателей; только Junior IT, Remote и Poland по полям работодателя.",
   },
   {
+    id: "lever_remote_pl",
+    hosts: ["jobs.lever.co", "jobs.eu.lever.co"],
+    mode: "public_api",
+    note: "Пробный ручной сбор с выбранных досок работодателей Lever; Junior IT, remote и явно указанная Польша.",
+  },
+  {
     id: "jooble",
     hosts: ["pl.jooble.org"],
     mode: "api",

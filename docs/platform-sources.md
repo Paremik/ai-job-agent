@@ -6,11 +6,17 @@ using Jooble quota. `pnpm discover:poland` combines them with Jooble when a key 
 configured. Existing `pnpm discover` still supports configured ATS sources.
 
 `pnpm discover:remote` reads the public Ashby job board for the employers in
-`config/search-remote.json`. The pilot currently includes Docplanner. It keeps
+`config/search-remote.json`. The pilot includes Docplanner, n8n and Hostinger. It keeps
 only listed junior IT roles whose structured board fields say both Remote and
-Poland. The original employer posting remains the source of truth; review any
+Poland, including Poland listed as a secondary location. A board can return zero
+matches until a suitable role opens. The original employer posting remains the source of truth; review any
 specific location or schedule restrictions before preparing an application.
 This command does not use the Jooble quota and is not yet part of the schedule.
+It also reads selected Lever employer boards from `config/search-remote-lever.json`;
+the first is Provectus. Lever roles must explicitly say `remote` and list Poland
+as a posting location. Both remote adapters keep junior IT titles only and limit
+requests per employer. A role's skills and any description restrictions still
+need individual review.
 
 Jooble uses four Opole searches (junior developer, junior tester, IT helpdesk and IT internship), one page of up to 20 results each. The search location is a query hint, not proof that every returned vacancy is in Opole; verify each posting. The four-request cap is unchanged from the earlier Poland-wide configuration. [Jooble documents a lifetime limit of 500 requests for a free key](https://help.jooble.org/en/support/solutions/articles/60001448238-rest-api-documentation), so avoid unnecessary repeated runs. Broader Polish coverage continues through the public boards, while previously saved Jooble vacancies remain in the database.
 

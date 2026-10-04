@@ -2,6 +2,7 @@ import { z } from "zod";
 import { HttpClient, HttpError } from "../infrastructure/http/index.js";
 import { JobSchema, type Job } from "../domain/job.js";
 import type { DiscoveryContext, JobSource, SourceError, SourceResult } from "./job-source.js";
+import { juniorItTitle, polishCountry } from "./remote-poland-filters.js";
 
 export const RemoteSearchSchema = z.object({
   boards: z
@@ -31,19 +32,17 @@ const Posting = z.object({
   secondaryLocations: z
     .array(
       z.object({
-        address: z.object({ addressCountry: z.string().nullish() }).optional(),
+        address: z
+          .object({
+            addressCountry: z.string().nullish(),
+            postalAddress: z.object({ addressCountry: z.string().nullish() }).optional(),
+          })
+          .optional(),
       }),
     )
     .optional(),
 });
 const Response = z.object({ apiVersion: z.string(), jobs: z.array(z.unknown()) });
-
-const junior =
-  /\b(?:junior|jr\.?|intern|internship|trainee|graduate|entry[- ]level)\b|młodszy|młodsza|stażysta|stażystka/iu;
-const target =
-  /\b(?:software|developer|engineer|tester|testing|qa|support|help\s?desk|administrator|frontend|backend|fullstack)\b|programista/iu;
-const poland = (value: string | null | undefined) =>
-  /^(?:Poland|Polska|PL)$/iu.test(value?.trim() ?? "");
 
 export function normalizeAshbyRemotePoland(
   raw: unknown,
@@ -53,16 +52,15 @@ export function normalizeAshbyRemotePoland(
   const parsed = Posting.safeParse(raw);
   if (!parsed.success) return null;
   const posting = parsed.data;
-  const countries = [
-    posting.address?.postalAddress?.addressCountry,
-    ...(posting.secondaryLocations ?? []).map((item) => item.address?.addressCountry),
-  ];
+  const primaryPoland = polishCountry(posting.address?.postalAddress?.addressCountry);
+  const secondaryPoland = (posting.secondaryLocations ?? []).some((item) =>
+    polishCountry(item.address?.postalAddress?.addressCountry ?? item.address?.addressCountry),
+  );
   if (
     !posting.isListed ||
     posting.workplaceType !== "Remote" ||
-    !countries.some(poland) ||
-    !junior.test(posting.title) ||
-    !target.test(posting.title)
+    !(primaryPoland || secondaryPoland) ||
+    !juniorItTitle(posting.title)
   )
     return null;
   const url = new URL(posting.jobUrl);
@@ -91,7 +89,7 @@ export function normalizeAshbyRemotePoland(
     description:
       "This role is remote from Poland.\n[Workplace and country derived from the employer's Ashby job-board fields; verify the original posting.]\n" +
       posting.descriptionPlain,
-    location: posting.location ?? "Poland",
+    location: primaryPoland ? (posting.location ?? "Poland") : "Poland (also listed)",
     workplaceType: "remote",
     salaryMin: null,
     salaryMax: null,

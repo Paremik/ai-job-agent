@@ -1,5 +1,9 @@
 import { PublicBoardSource } from "../src/sources/public-boards.js";
 import { AshbyRemotePolandSource, RemoteSearchSchema } from "../src/sources/ashby-remote-poland.js";
+import {
+  LeverRemotePolandSource,
+  LeverRemoteSearchSchema,
+} from "../src/sources/lever-remote-poland.js";
 import { readFile } from "node:fs/promises";
 import { JoobleSource, PolandSearchSchema } from "../src/sources/jooble/jooble-source.js";
 import { GreenhouseSource } from "../src/sources/greenhouse/index.js";
@@ -89,11 +93,18 @@ async function main() {
     );
   }
   if (onlyRemote) {
-    const config = RemoteSearchSchema.parse(
+    const ashbyConfig = RemoteSearchSchema.parse(
       JSON.parse(await readFile(new URL("../config/search-remote.json", import.meta.url), "utf8")),
     );
-    sources.push(new AshbyRemotePolandSource(config));
+    const leverConfig = LeverRemoteSearchSchema.parse(
+      JSON.parse(
+        await readFile(new URL("../config/search-remote-lever.json", import.meta.url), "utf8"),
+      ),
+    );
+    sources.push(new AshbyRemotePolandSource(ashbyConfig));
     sourceAccounts.set("ashby_remote_pl", "selected-boards");
+    sources.push(new LeverRemotePolandSource(leverConfig));
+    sourceAccounts.set("lever_remote_pl", "selected-boards");
   }
   if (sources.length === 0) {
     console.error(

@@ -21,7 +21,7 @@ See [local dashboard details](docs/local-dashboard.md) and the other documents i
 Public Polish boards can also be refreshed on [a GitHub Actions schedule](docs/scheduled-discovery.md) after configuring a database secret. The schedule does not use the Jooble API key.
 
 For the pilot search of junior IT roles explicitly marked remote within Poland on
-selected employers' official Ashby boards, run `pnpm discover:remote`, then
+selected employers' official Ashby and Lever boards, run `pnpm discover:remote`, then
 `pnpm match:profile` and refresh the dashboard. See [source coverage](docs/platform-sources.md).
 
 ## Checks

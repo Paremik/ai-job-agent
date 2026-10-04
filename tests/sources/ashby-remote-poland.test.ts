@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  AshbyRemotePolandSource,
   normalizeAshbyRemotePoland,
   RemoteSearchSchema,
 } from "../../src/sources/ashby-remote-poland.js";
@@ -42,22 +43,41 @@ describe("Ashby remote Poland source", () => {
   });
 
   it("accepts Poland in a secondary location", () => {
-    expect(
-      normalizeAshbyRemotePoland(
-        {
-          ...posting,
-          address: { postalAddress: { addressCountry: "Germany" } },
-          secondaryLocations: [{ address: { addressCountry: "PL" } }],
-        },
-        board,
-        discoveredAt,
-      ),
-    ).not.toBeNull();
+    const job = normalizeAshbyRemotePoland(
+      {
+        ...posting,
+        address: { postalAddress: { addressCountry: "Germany" } },
+        secondaryLocations: [{ address: { postalAddress: { addressCountry: "PL" } } }],
+      },
+      board,
+      discoveredAt,
+    );
+    expect(job?.location).toBe("Poland (also listed)");
   });
 
   it("rejects duplicate board entries", () => {
     expect(() =>
       RemoteSearchSchema.parse({ boards: [board, { ...board, slug: "Docplanner" }] }),
     ).toThrow();
+  });
+
+  it("continues to the next board after an HTTP failure", async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("/n8n")
+        ? new Response("unavailable", { status: 503 })
+        : Response.json({ apiVersion: "1", jobs: [posting] }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const result = await new AshbyRemotePolandSource({
+        boards: [{ slug: "n8n", company: "n8n" }, board],
+      }).discover({ runId: "test", startedAt: new Date(discoveredAt) });
+      expect(result.jobs).toHaveLength(1);
+      expect(result.stats).toEqual({ fetched: 1, valid: 1, rejected: 0 });
+      expect(result.errors).toMatchObject([{ code: "ASHBY_HTTP_503", retryable: true }]);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
