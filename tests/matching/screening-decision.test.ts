@@ -54,8 +54,14 @@ describe("conservative screening decision", () => {
       applicationAllowed: false,
     });
   });
-  it("asks for details when requirements are missing or location is unknown", () => {
-    expect(decision("Junior React Developer", "").status).toBe("clarify_first");
+  it("reviews a local junior role early while retaining the missing-requirements warning", () => {
+    expect(decision("Junior React Developer", "")).toMatchObject({
+      status: "review_now",
+      applicationAllowed: false,
+    });
+    expect(decision("Junior React Developer", "").reasons).toContain(
+      "Описание неполное: перед откликом проверь все обязательные требования.",
+    );
     expect(
       decision("Junior React Developer", "Minimum qualifications\nReact", "needs_review").status,
     ).toBe("clarify_first");
