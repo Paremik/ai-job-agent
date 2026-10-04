@@ -18,11 +18,12 @@ For a vacancy without a package, choose **Создать или открыть C
 
 See [local dashboard details](docs/local-dashboard.md) and the other documents in `docs/` for the current pipeline and its limitations.
 
-Public Polish boards can also be refreshed on [a GitHub Actions schedule](docs/scheduled-discovery.md) after configuring a database secret. The schedule does not use the Jooble API key.
+Public Polish boards and selected employers' remote roles can also be refreshed on [a GitHub Actions schedule](docs/scheduled-discovery.md) after configuring a database secret. The schedule does not use the Jooble API key.
 
-For the pilot search of junior IT roles explicitly marked remote within Poland on
+For a manual refresh of junior IT roles explicitly marked remote within Poland on
 selected employers' official Ashby and Lever boards, run `pnpm discover:remote`, then
-`pnpm match:profile` and refresh the dashboard. See [source coverage](docs/platform-sources.md).
+`pnpm match:profile` and refresh the dashboard. The same search runs daily in GitHub;
+the local dashboard still needs a refresh from the database. See [source coverage](docs/platform-sources.md).
 
 ## Checks
 

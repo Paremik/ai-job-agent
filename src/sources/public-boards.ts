@@ -160,15 +160,31 @@ export function normalizePosting(
   const addresses = places.map((place) => obj(obj(place).address));
   const country = (address: Record<string, unknown>) =>
     (str(address.addressCountry) || str(obj(address.addressCountry).name)).toLowerCase();
-  // Poland-first: require at least one explicit Polish office location. Remote
-  // eligibility is still unresolved; a giant applicant-country list is not proof.
-  if (!addresses.some((address) => ["pl", "pol", "poland", "polska"].includes(country(address))))
-    return null;
+  const polishOffice = addresses.some((address) =>
+    ["pl", "pol", "poland", "polska"].includes(country(address)),
+  );
+  const applicantPlaces = Array.isArray(raw.applicantLocationRequirements)
+    ? raw.applicantLocationRequirements
+    : raw.applicantLocationRequirements
+      ? [raw.applicantLocationRequirements]
+      : [];
+  // A generic country name is insufficient: require a typed Country eligibility
+  // field together with an explicit telecommute workplace type.
+  const remoteFromPoland =
+    str(raw.jobLocationType).toUpperCase() === "TELECOMMUTE" &&
+    applicantPlaces.some((place) => {
+      const area = obj(place);
+      return (
+        area["@type"] === "Country" &&
+        ["pl", "poland", "polska"].includes(str(area.name).toLowerCase())
+      );
+    });
+  if (!polishOffice && !remoteFromPoland) return null;
   const location =
     addresses
       .map((address) => [str(address.addressLocality), country(address)].filter(Boolean).join(", "))
       .filter(Boolean)
-      .join("; ") || null;
+      .join("; ") || (remoteFromPoland ? "Poland (remote allowed)" : null);
   const description = str(raw.description);
   const skills = Array.isArray(raw.skills)
     ? raw.skills
@@ -185,8 +201,8 @@ export function normalizePosting(
       title: str(raw.title),
       company: str(obj(raw.hiringOrganization).name),
       location,
-      description: `[Public structured posting; completeness not guaranteed. Verify the original.]\n${description}${qualifications.length ? `\nQualifications\n${qualifications.join("\n")}` : ""}`,
-      remote: raw.jobLocationType === "TELECOMMUTE",
+      description: `${remoteFromPoland ? "This role can be performed remotely from Poland.\n" : ""}[Public structured posting; completeness not guaranteed. Verify the original.]\n${description}${qualifications.length ? `\nQualifications\n${qualifications.join("\n")}` : ""}`,
+      remote: str(raw.jobLocationType).toUpperCase() === "TELECOMMUTE",
     },
     context,
   );

@@ -69,6 +69,7 @@ export function jobPriority(
     tier,
     order: { entry: 0, review: 1, experienced: 2, location_mismatch: 3 }[tier],
     titleLevel: entry && advanced ? "mixed" : advanced ? "advanced" : entry ? "entry" : "unknown",
+    intermediateTitle: intermediate,
     largestExplicitMinimumYears: largestMinimum,
     experienceEvidence: years,
     reasons,
@@ -80,14 +81,23 @@ export function compareJobPriority(
     id: string;
     priority: ReturnType<typeof jobPriority>;
     comparison: { matchedSkills: string[] };
+    screening?: { status: "review_now" | "clarify_first" | "defer" };
+    lastSeenAt?: Date | string | null;
   },
   b: {
     id: string;
     priority: ReturnType<typeof jobPriority>;
     comparison: { matchedSkills: string[] };
+    screening?: { status: "review_now" | "clarify_first" | "defer" };
+    lastSeenAt?: Date | string | null;
   },
 ) {
+  const queueOrder = { review_now: 0, clarify_first: 1, defer: 2 };
+  const queue = (row: typeof a) =>
+    row.screening ? queueOrder[row.screening.status] : row.priority.order;
+  const seen = (row: typeof a) => (row.lastSeenAt ? new Date(row.lastSeenAt).getTime() : 0);
   return (
+    queue(a) - queue(b) ||
     a.priority.order - b.priority.order ||
     Number(a.priority.titleLevel !== "entry") - Number(b.priority.titleLevel !== "entry") ||
     Number(a.priority.signals?.languageGap ?? false) -
@@ -104,6 +114,7 @@ export function compareJobPriority(
       (a.priority.signals?.preferredMatches.length ?? 0) ||
     Number(a.priority.signals?.targetRole === "other_or_unclear") -
       Number(b.priority.signals?.targetRole === "other_or_unclear") ||
+    seen(b) - seen(a) ||
     a.id.localeCompare(b.id)
   );
 }

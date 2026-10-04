@@ -6,17 +6,25 @@ using Jooble quota. `pnpm discover:poland` combines them with Jooble when a key 
 configured. Existing `pnpm discover` still supports configured ATS sources.
 
 `pnpm discover:remote` reads the public Ashby job board for the employers in
-`config/search-remote.json`. The pilot includes Docplanner, n8n and Hostinger. It keeps
+`config/search-remote.json`. The selected boards are Docplanner, n8n, Hostinger,
+ElevenLabs and Coder. It keeps
 only listed junior IT roles whose structured board fields say both Remote and
 Poland, including Poland listed as a secondary location. A board can return zero
 matches until a suitable role opens. The original employer posting remains the source of truth; review any
 specific location or schedule restrictions before preparing an application.
-This command does not use the Jooble quota and is not yet part of the schedule.
+This command does not use the Jooble quota and also runs daily on the GitHub schedule.
 It also reads selected Lever employer boards from `config/search-remote-lever.json`;
-the first is Provectus. Lever roles must explicitly say `remote` and list Poland
+the selected boards are Provectus, Viseven and Xsolla. Lever roles must explicitly say `remote` and list Poland
 as a posting location. Both remote adapters keep junior IT titles only and limit
 requests per employer. A role's skills and any description restrictions still
 need individual review.
+
+Board presence does not mean that a suitable vacancy is open. The added employer
+boards are public: [ElevenLabs](https://jobs.ashbyhq.com/elevenlabs),
+[Coder](https://jobs.ashbyhq.com/coder),
+[Viseven](https://jobs.lever.co/viseven) and
+[Xsolla](https://jobs.lever.co/xsolla). Each run checks current published records;
+the adapters keep only jobs with explicit remote and Poland fields.
 
 Jooble uses four Opole searches (junior developer, junior tester, IT helpdesk and IT internship), one page of up to 20 results each. The search location is a query hint, not proof that every returned vacancy is in Opole; verify each posting. The four-request cap is unchanged from the earlier Poland-wide configuration. [Jooble documents a lifetime limit of 500 requests for a free key](https://help.jooble.org/en/support/solutions/articles/60001448238-rest-api-documentation), so avoid unnecessary repeated runs. Broader Polish coverage continues through the public boards, while previously saved Jooble vacancies remain in the database.
 
@@ -28,10 +36,10 @@ are spaced one second apart, capped at 8 MB and 20 seconds. Access denials stop 
 source and keep previous successful results; other sources can continue. Network/timeouts and HTTP 408, 425, 429, or 5xx errors are marked retryable for a later run; they are not automatically retried. Access denials and changed/invalid page structure are not marked retryable.
 
 Just Join IT, No Fluff Jobs and Bulldogjob use JobPosting JSON-LD. No Fluff Jobs rotates backend, frontend, testing and support; explicit driver/recruiter/accountant titles are skipped. They require an explicitly
-Polish office location, skip expired postings and keep the original public URL.
-Remote-only postings without such a location are currently skipped, even if they
-might accept Polish candidates. Remote eligibility is not inferred from a generic
-country list. No Fluff Jobs descriptions can be very short; skills are kept as
+Polish office location or both a `TELECOMMUTE` workplace type and a typed
+`Country: Poland` applicant location in the posting's structured data. They skip
+expired postings and keep the original public URL. A generic country name alone
+does not confirm remote eligibility. No Fluff Jobs descriptions can be very short; skills are kept as
 unspecified qualifications, never automatically required. RSS locations/expiry are
 unverified. All public descriptions carry a completeness warning. Salary units are
 not discarded into misleading numeric ranges; normalized salary remains null.

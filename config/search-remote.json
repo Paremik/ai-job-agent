@@ -2,6 +2,8 @@
   "boards": [
     { "slug": "docplanner", "company": "Docplanner" },
     { "slug": "n8n", "company": "n8n" },
-    { "slug": "hostinger", "company": "Hostinger" }
+    { "slug": "hostinger", "company": "Hostinger" },
+    { "slug": "elevenlabs", "company": "ElevenLabs" },
+    { "slug": "coder", "company": "Coder" }
   ]
 }

@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: "17 10,22 * * *"
       timezone: Europe/Warsaw
+    - cron: "43 8 * * *"
+      timezone: Europe/Warsaw
   workflow_dispatch:
 
 permissions:
@@ -39,7 +41,12 @@ jobs:
           cache: true
           require-lockfile: true
       - name: Discover public Polish IT boards
-        if: steps.config.outputs.ready == 'true'
+        if: steps.config.outputs.ready == 'true' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '17 10,22 * * *')
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm discover:boards
+      - name: Discover verified remote roles from Poland
+        if: steps.config.outputs.ready == 'true' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '43 8 * * *')
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm discover:remote

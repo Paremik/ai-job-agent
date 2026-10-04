@@ -1,3 +1,7 @@
 {
-  "boards": [{ "site": "provectus", "company": "Provectus", "region": "global" }]
+  "boards": [
+    { "site": "provectus", "company": "Provectus", "region": "global" },
+    { "site": "viseven", "company": "Viseven", "region": "global" },
+    { "site": "xsolla", "company": "Xsolla", "region": "global" }
+  ]
 }

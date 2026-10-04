@@ -98,7 +98,12 @@ async function main() {
           locationDecision,
           comparison,
           priority,
-          screening: screeningDecision(priority, locationDecision, metadata.sourceCheck),
+          screening: screeningDecision(priority, locationDecision, metadata.sourceCheck, {
+            homeCity: profile.preferences.homeCity,
+            locationText: metadata.location,
+            workplaceType: metadata.workplaceType,
+            hasRelatedSkills: comparison.matchedSkills.length > 0,
+          }),
         };
       })
       .sort(compareJobPriority);

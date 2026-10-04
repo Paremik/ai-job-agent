@@ -3,9 +3,10 @@
 `pnpm match:profile` now orders jobs using explicit signals for this candidate's
 entry-level search. No job is deleted or rejected automatically.
 
-Order: entry titles, unknown/mixed titles, advanced titles or an unambiguous required
-minimum of 3+ years, then known location mismatches. Within a group, more distinct
-technology overlaps appear first; job ID breaks ties deterministically. The 3-year
+Order: `review_now`, `clarify_first`, then `defer`. Within each queue: entry titles,
+unknown/mixed titles, advanced titles or an unambiguous required minimum of 3+
+years, then known location mismatches. More distinct technology overlaps appear
+first; recent `last_seen_at` and job ID break ties. The 3-year
 threshold is a search policy, not an estimate of the candidate's experience.
 
 Preferred, negated, alternative and ambiguous experience statements do not lower
@@ -30,9 +31,16 @@ Markdown report shows reasons; `private/priority-shortlist.md` provides the firs
 human inspection, not an eligibility score or permission to apply. Every state
 has `applicationAllowed: false`.
 
-Only a manually confirmed location conflict or a clearly advanced role / required
-3+ years goes to `defer`; the vacancy stays in the report. A location conflict
-derived from description rules, an incomplete posting, missing skill evidence, or
-a declared language gap goes to `clarify_first`. A junior role with no such flagged
-gaps and a confirmed compatible location is `review_now`. Work authorization,
-schedule, actual proficiency, and job freshness still require human review.
+A manually confirmed location conflict or a clearly advanced role / required 3+
+years goes to `defer`. An unknown-level role with no sign of a chosen IT direction
+and no matched required or preferred skill evidence also goes there as a lower
+search priority. Every vacancy remains in the report and is searchable.
+
+A location conflict derived from description rules, missing required skill evidence
+or a declared language gap goes to `clarify_first`. A junior target role without
+explicit skill or language gaps can enter `review_now` despite an incomplete
+description when the location is confirmed compatible. A junior target role
+explicitly in the home city can enter this queue when its format is unclear;
+the reason says to check the format. `review_now` means inspect the original
+promptly, not that applying is safe. Work authorization, schedule, actual
+proficiency, and job freshness still require human review.

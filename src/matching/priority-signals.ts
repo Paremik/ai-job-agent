@@ -50,6 +50,8 @@ export function prioritySignals(
     ["German", /\bgerman\b|niemieck\p{L}*/iu],
     ["English", /\benglish\b|angielsk\p{L}*/iu],
     ["Polish", /\bpolish\b|polsk\p{L}*/iu],
+    ["Portuguese", /\bportuguese\b|portugalsk\p{L}*/iu],
+    ["Spanish", /\bspanish\b|hiszpańsk\p{L}*/iu],
   ] as const) {
     if (
       pattern.test(title) &&
