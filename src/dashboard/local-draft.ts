@@ -81,18 +81,26 @@ const projects = [
 
 function projectOrder(role: string) {
   const title = role.toLowerCase();
-  if (/front|web|react|ui|ux/.test(title)) return ["map", "cafe", "agent", "bot", "audio"];
+  if (/front|web|react|\bui\b|\bux\b/.test(title)) return ["map", "cafe", "agent", "bot", "audio"];
   if (/test|qa|quality/.test(title)) return ["agent", "bot", "audio", "map", "cafe"];
   if (/python|backend|data/.test(title)) return ["bot", "agent", "audio", "map", "cafe"];
   return ["agent", "bot", "map", "cafe", "audio"];
 }
 
+function isSupportRole(role: string) {
+  return /\b(?:linux|windows|system|network|it) administrator\b|\b(?:it support|help\s?desk|service desk|informatyk(?:a)?)\b/iu.test(
+    role,
+  );
+}
+
 function focus(role: string) {
   const title = role.toLowerCase();
-  if (/front|web|react|ui|ux/.test(title))
+  if (/front|web|react|\bui\b|\bux\b/.test(title))
     return "Interesuje mnie tworzenie czytelnych interfejsów i rozwijanie aplikacji webowych.";
   if (/test|qa|quality/.test(title))
     return "Chcę rozwijać się w testowaniu funkcjonalnym i stopniowo poszerzać umiejętności automatyzacji.";
+  if (isSupportRole(role))
+    return "Chcę rozwijać się w administracji systemami i wsparciu użytkowników, ucząc się od doświadczonego zespołu.";
   if (/python|backend|data/.test(title))
     return "Chcę rozwijać się w pracy z Pythonem, danymi i aplikacjami backendowymi.";
   if (/build|release|devops/.test(title))
@@ -102,6 +110,7 @@ function focus(role: string) {
 
 export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: string): LocalDraft {
   const facts = new Map(brief.candidate.facts.map((fact) => [fact.id, fact]));
+  const supportRole = isSupportRole(brief.job.title);
   const order = projectOrder(brief.job.title);
   const available = order
     .map((id) => projects.find((project) => project.id === id))
@@ -128,6 +137,11 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
     ...(facts.has("internships")
       ? ["- Testy manualne, poprawianie błędów i konfiguracja środowiska podczas praktyk IT."]
       : []),
+    ...(facts.has("internships") && supportRole
+      ? [
+          "- Diagnostyka Windows, montaż komputerów i instalacja systemów monitoringu podczas praktyk IT.",
+        ]
+      : []),
   ];
   const skillSummary = [
     facts.has("agent") ? "TypeScriptu" : null,
@@ -142,7 +156,7 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
       : `Mogę rozpocząć współpracę od ${availableFrom}`
     : "Termin rozpoczęcia wymaga uzgodnienia";
   const practice = facts.has("internships")
-    ? "Segal, Opole — praktyki IT, 05.2024–06.2025 i 05.2026–06.2026. Testy manualne, poprawianie błędów, refaktoryzacja i porządkowanie kodu oraz konfiguracja środowiska. Diagnozowanie problemów Windows, montaż komputerów i podłączanie sprzętu u klientów. Praktyki szkolne, nie pełnoetatowe zatrudnienie programistyczne."
+    ? "Segal, Opole — praktyki IT, 05.2024–06.2025 i 05.2026–06.2026. Testy manualne, poprawianie błędów, refaktoryzacja i porządkowanie kodu oraz konfiguracja środowiska. Diagnozowanie problemów Windows, montaż komputerów, instalacja systemów monitoringu i podłączanie sprzętu u klientów. Praktyki szkolne, nie pełnoetatowe zatrudnienie programistyczne."
     : "Praktyki i doświadczenie do uzupełnienia na podstawie potwierdzonych dokumentów.";
   const intro = [
     facts.has("education")
@@ -192,6 +206,33 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
   const examples = available.slice(0, 2);
   const first = examples[0];
   const second = examples[1];
+  const requiredEvidenceGaps = [
+    ...new Set(
+      brief.review.requirements
+        .filter((item) => item.importance === "required")
+        .flatMap((item) =>
+          item.findings
+            .filter(
+              (finding) =>
+                finding.kind === "skill" &&
+                ["no_evidence", "needs_review"].includes(finding.status) &&
+                finding.factIds.length === 0,
+            )
+            .map((finding) => clean(finding.label, 80)),
+        ),
+    ),
+  ].slice(0, 2);
+  const gapSentence = requiredEvidenceGaps.length
+    ? `W dostępnych materiałach nie mam jeszcze potwierdzenia pracy z: ${requiredEvidenceGaps.join(", ")}. Czy są to wymagania konieczne od pierwszego dnia?`
+    : "Chętnie porozmawiam o tym, które wymagania są konieczne od pierwszego dnia, a których mogę nauczyć się w zespole.";
+  const workConditionsQuestion =
+    brief.job.workplaceType === "remote"
+      ? "Czy tę pracę zdalną można wykonywać z Polski?"
+      : brief.job.workplaceType === "hybrid"
+        ? `Jak często wymagana jest obecność w biurze${brief.job.location ? ` (${clean(brief.job.location, 100)})` : ""}? Dojazdy i organizację dni pracy chciałbym uzgodnić indywidualnie.`
+        : brief.job.workplaceType === "onsite"
+          ? `Czy praca wymaga regularnej obecności w biurze${brief.job.location ? ` (${clean(brief.job.location, 100)})` : ""}? Lokalizację, dojazd i godziny chciałbym uzgodnić indywidualnie.`
+          : "Czy mogą Państwo potwierdzić miejsce i tryb pracy? Warunki dojazdu oraz godziny chciałbym uzgodnić indywidualnie.";
   const letterText = [
     `Temat: Aplikacja — ${clean(brief.job.title, 120)} | ${brief.candidate.displayName}`,
     "",
@@ -208,12 +249,14 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
       : "",
     "",
     facts.has("internships")
-      ? "Podczas praktyk IT w Segal wykonywałem testy manualne, poprawiałem błędy, porządkowałem i refaktoryzowałem kod oraz konfigurowałem środowisko. Diagnozowałem również problemy Windows i pomagałem przy podłączaniu sprzętu u klientów."
+      ? supportRole
+        ? "Podczas praktyk IT w Segal diagnozowałem problemy Windows, montowałem komputery, instalowałem systemy monitoringu i pomagałem przy podłączaniu sprzętu u klientów. Wykonywałem także testy manualne, poprawiałem błędy i konfigurowałem środowisko."
+        : "Podczas praktyk IT w Segal wykonywałem testy manualne, poprawiałem błędy, porządkowałem i refaktoryzowałem kod oraz konfigurowałem środowisko. Diagnozowałem również problemy Windows i pomagałem przy podłączaniu sprzętu u klientów."
       : "",
     "",
-    `Moje dotychczasowe doświadczenie obejmuje projekty własne${facts.has("internships") ? " i praktyki szkolne" : ""}; nie przedstawiam go jako pełnoetatowego doświadczenia komercyjnego. Chętnie porozmawiam o tym, które wymagania są konieczne od pierwszego dnia, a których mogę nauczyć się w zespole.`,
+    `Moje dotychczasowe doświadczenie obejmuje projekty własne${facts.has("internships") ? " i praktyki szkolne" : ""}; nie przedstawiam go jako pełnoetatowego doświadczenia komercyjnego. ${gapSentence}`,
     "",
-    `Mieszkam ${brief.candidate.preferences.homeCity === "Opole" ? "w Opolu" : `w mieście ${clean(brief.candidate.preferences.homeCity, 80)}`}${facts.has("education") ? " i nadal się uczę" : ""}. Czy mogą Państwo potwierdzić tryb pracy dla tej roli${facts.has("education") ? " i możliwość uzgodnienia godzin z planem nauki" : ""}? ${brief.job.location ? `W ogłoszeniu wskazano lokalizację: ${clean(brief.job.location, 100)}.` : "Lokalizacja wymaga potwierdzenia."} ${availableText}.`,
+    `Mieszkam ${brief.candidate.preferences.homeCity === "Opole" ? "w Opolu" : `w mieście ${clean(brief.candidate.preferences.homeCity, 80)}`}${facts.has("education") ? " i nadal się uczę" : ""}. ${workConditionsQuestion}${facts.has("education") ? " Proszę również o informację, czy godziny można uzgodnić z planem nauki." : ""} ${brief.job.location ? `W ogłoszeniu wskazano lokalizację: ${clean(brief.job.location, 100)}.` : "Lokalizacja wymaga potwierdzenia."} ${availableText}.`,
     "",
     "W załączeniu przesyłam CV. Będę wdzięczny za informację, czy rozważają Państwo kandydata z takim profilem. Chętnie opowiem więcej o projektach podczas rozmowy.",
     "",
@@ -221,6 +264,7 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
     brief.candidate.displayName,
     contact.phone,
     contact.email,
+    `GitHub: ${contact.github}`,
     brief.candidate.preferences.homeCity,
   ]
     .filter((line, index, lines) => line !== "" || lines[index - 1] !== "")

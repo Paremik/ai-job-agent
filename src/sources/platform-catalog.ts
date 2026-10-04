@@ -1,5 +1,11 @@
 export const platforms = [
   {
+    id: "ashby_remote_pl",
+    hosts: ["jobs.ashbyhq.com"],
+    mode: "public_api",
+    note: "Пробный ручной сбор с выбранных досок работодателей; только Junior IT, Remote и Poland по полям работодателя.",
+  },
+  {
     id: "jooble",
     hosts: ["pl.jooble.org"],
     mode: "api",

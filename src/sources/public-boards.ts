@@ -333,13 +333,21 @@ export class PublicBoardSource implements JobSource {
         }
       }
     } catch (error) {
+      const status =
+        error instanceof Error ? /^(?:HTTP_)(\d{3})$/.exec(error.message)?.[1] : undefined;
+      const httpStatus = status ? Number(status) : undefined;
       result.errors.push({
         code: "BOARD_FETCH_FAILED",
         message:
           error instanceof Error && /^(HTTP_\d+|LISTING_CHANGED)$/.test(error.message)
             ? error.message
             : "Public feed unavailable or changed; no retries or access-control bypass attempted.",
-        retryable: false,
+        retryable:
+          error instanceof Error && error.message === "LISTING_CHANGED"
+            ? false
+            : httpStatus === undefined
+              ? true
+              : httpStatus === 408 || httpStatus === 425 || httpStatus === 429 || httpStatus >= 500,
       });
     }
     result.stats.valid = result.jobs.length;

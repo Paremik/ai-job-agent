@@ -7,6 +7,21 @@ export function prioritySignals(
   profile: CandidateProfile,
   comparison: ReturnType<typeof compareRequirements>,
 ) {
+  // A title-only search preference: it changes ordering, never eligibility.
+  const targetRole =
+    /\b(?:qa|quality assurance|manual test(?:er|ing)?|test(?:er|ing)(?: engineer)?|testowanie|tester(?:ka)?|test engineer)\b|testy manualne/iu.test(
+      title,
+    )
+      ? "testing"
+      : /\b(?:it support|technical support|help\s?desk|service desk|support engineer|(?:linux|windows|system|network) administrator|it administrator|wsparcie techniczne|technik informatyk|informatyk(?:a)?)\b/iu.test(
+            title,
+          )
+        ? "support"
+        : /front[- ]?end|back[- ]?end|full[- ]?stack|react|software (?:developer|engineer)|web developer|\bdeveloper\b|\bprogrammer\b|programista|programowanie/iu.test(
+              title,
+            )
+          ? "development"
+          : "other_or_unclear";
   const requiredMatches = new Set<string>();
   const requiredMissing = new Set<string>();
   const preferredMatches = new Set<string>();
@@ -61,12 +76,17 @@ export function prioritySignals(
     );
   else
     reasons.push("Разбор требований частичный; отсутствие отметки не подтверждает соответствие.");
+  if (targetRole !== "other_or_unclear")
+    reasons.push(
+      `Название указывает на выбранное направление поиска (${targetRole === "development" ? "разработка" : targetRole === "testing" ? "тестирование" : "IT-поддержка"}); проверь фактические обязанности.`,
+    );
   if (languageGap) reasons.push("Заявленный уровень языка ниже распознанного требования.");
   if (languageReview)
     reasons.push("Языковые условия требуют проверки; отсутствие уровня не означает соответствие.");
   if (requiredMissing.size)
     reasons.push(`Обязательные навыки без подтверждения: ${[...requiredMissing].join(", ")}.`);
   return {
+    targetRole,
     requiredMatches: [...requiredMatches].sort(),
     requiredMissing: [...requiredMissing].sort(),
     preferredMatches: [...preferredMatches].sort(),

@@ -71,4 +71,23 @@ describe("review-aware priority", () => {
     const req = extractRequirements("Minimum qualifications\nPython");
     expect(jobPriority("Junior Developer", req, "ineligible").tier).toBe("location_mismatch");
   });
+  it("gives target role titles a soft ordering preference without removing other jobs", () => {
+    const development = row("z", "Minimum qualifications\nPython", "Junior React Developer");
+    const unrelated = row("a", "Minimum qualifications\nPython", "Junior Office Coordinator");
+    expect(development.priority.signals?.targetRole).toBe("development");
+    expect(unrelated.priority.signals?.targetRole).toBe("other_or_unclear");
+    expect([unrelated, development].sort(compareJobPriority)[0]?.id).toBe("z");
+    expect([development, unrelated]).toHaveLength(2);
+  });
+  it.each([
+    ["Junior Java Developer", "development"],
+    ["Manual QA Tester", "testing"],
+    ["IT Help Desk Specialist", "support"],
+    ["Junior Linux Administrator", "support"],
+    ["Informatyk / Informatyczka", "support"],
+  ] as const)("recognizes target title family %s", (title, targetRole) => {
+    expect(row("a", "Minimum qualifications\nPython", title).priority.signals?.targetRole).toBe(
+      targetRole,
+    );
+  });
 });

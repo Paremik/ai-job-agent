@@ -79,6 +79,7 @@ export function buildApplicationBrief(
       importance: statement.requirement.importance,
       text: statement.requirement.evidence.text,
       findings: statement.findings.slice(0, 8).map((finding) => ({
+        kind: finding.kind,
         label: finding.label,
         status: finding.status,
         explanation: finding.explanation,

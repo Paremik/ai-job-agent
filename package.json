@@ -9,6 +9,7 @@
     "shortlist:prepare": "node --env-file-if-exists=.env --import tsx scripts/prepare-shortlist.ts",
     "profile:check": "tsx scripts/profile-check.ts",
     "discover:boards": "node --env-file-if-exists=.env --import tsx scripts/discover-jobs.ts --boards",
+    "discover:remote": "node --env-file-if-exists=.env --import tsx scripts/discover-jobs.ts --remote",
     "sources:status": "tsx scripts/source-status.ts",
     "import:jobs": "node --env-file-if-exists=.env --import tsx scripts/import-jobs.ts",
     "discover:poland": "node --env-file-if-exists=.env --import tsx scripts/discover-jobs.ts --poland",

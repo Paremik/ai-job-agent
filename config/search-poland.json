@@ -1,10 +1,10 @@
 {
   "country": "PL",
   "queries": [
-    { "keywords": "junior developer", "location": "Polska" },
-    { "keywords": "tester junior", "location": "Polska" },
-    { "keywords": "helpdesk IT", "location": "Polska" },
-    { "keywords": "staż IT", "location": "Polska" }
+    { "keywords": "junior developer", "location": "Opole" },
+    { "keywords": "tester junior", "location": "Opole" },
+    { "keywords": "helpdesk IT", "location": "Opole" },
+    { "keywords": "staż IT", "location": "Opole" }
   ],
   "pagesPerQuery": 1,
   "resultsPerPage": 20

@@ -11,14 +11,22 @@ import {
   buildLocalDraft,
 } from "../src/dashboard/local-draft.js";
 import { buildDashboard } from "./build-dashboard.js";
+import { createDashboardRefresh } from "../src/dashboard/refresh.js";
+import {
+  NotificationRequest,
+  NotificationStore,
+  syncNotifications,
+} from "../src/dashboard/notifications.js";
 
 const privateFolder = new URL("../private/", import.meta.url);
 const storePath = new URL("dashboard-reviews.json", privateFolder);
+const notificationsPath = new URL("dashboard-notifications.json", privateFolder);
 const draftsFolder = new URL("local-drafts/", privateFolder);
 const port = Number(process.env.DASHBOARD_PORT ?? 4173);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid dashboard port");
 const origin = `http://127.0.0.1:${port}`;
 let pendingWrite: Promise<unknown> = Promise.resolve();
+const dashboardRefresh = createDashboardRefresh();
 
 async function readStore(): Promise<ReviewStore> {
   try {
@@ -100,6 +108,69 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     return;
   }
   const pathname = new URL(request.url ?? "/", origin).pathname;
+  if (pathname === "/api/refresh" && request.method === "GET") {
+    json(response, 200, dashboardRefresh.current());
+    return;
+  }
+  if (pathname === "/api/refresh" && request.method === "POST") {
+    if (
+      request.headers.origin !== origin ||
+      !request.headers["content-type"]?.startsWith("application/json")
+    ) {
+      json(response, 403, { error: "Invalid origin or content type" });
+      return;
+    }
+    json(response, 202, dashboardRefresh.start());
+    return;
+  }
+  if (pathname === "/api/notifications" && request.method === "POST") {
+    if (
+      request.headers.origin !== origin ||
+      !request.headers["content-type"]?.startsWith("application/json")
+    ) {
+      json(response, 403, { error: "Invalid origin or content type" });
+      return;
+    }
+    const input = NotificationRequest.safeParse(await readBody(request));
+    if (!input.success) {
+      json(response, 400, { error: "Invalid notification request" });
+      return;
+    }
+    const write = pendingWrite.then(async () => {
+      let previous: NotificationStore | null = null;
+      try {
+        previous = NotificationStore.parse(JSON.parse(await readFile(notificationsPath, "utf8")));
+      } catch (error) {
+        if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT"))
+          throw error;
+      }
+      const report = JSON.parse(
+        await readFile(new URL("comparison-report.json", privateFolder), "utf8"),
+      );
+      const now = new Date();
+      const today = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+      ].join("-");
+      const result = syncNotifications(
+        previous,
+        report,
+        await readStore(),
+        today,
+        input.data.acknowledge,
+      );
+      if (JSON.stringify(previous) !== JSON.stringify(result.store)) {
+        const temporary = new URL(`dashboard-notifications-${randomUUID()}.tmp`, privateFolder);
+        await writeFile(temporary, JSON.stringify(result.store, null, 2) + "\n", { flag: "wx" });
+        await rename(temporary, notificationsPath);
+      }
+      return { notifications: result.notifications, generatedAt: result.generatedAt };
+    });
+    pendingWrite = write.catch(() => undefined);
+    json(response, 200, await write);
+    return;
+  }
   if (pathname === "/api/reviews" && request.method === "GET") {
     json(response, 200, await readStore());
     return;

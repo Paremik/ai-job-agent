@@ -111,7 +111,8 @@ export class HttpClient {
         }
 
         if (error instanceof Error && error.name === "AbortError") {
-          throw new Error(`HTTP request timed out after ${this.timeoutMs} ms: ${url}`, {
+          // Request URLs can contain private board identifiers or API credentials.
+          throw new Error(`HTTP request timed out after ${this.timeoutMs} ms.`, {
             cause: error,
           });
         }

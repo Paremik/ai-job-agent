@@ -58,7 +58,7 @@ const report = {
       canonicalUrl: "https://example.com/jobs/1",
       contentHash: "job-hash",
       location: "Warszawa",
-      workplaceType: "unknown",
+      workplaceType: "remote",
       priority: { tier: "review", reasons: [] },
       screening: { status: "clarify_first", reasons: [] },
       comparison: {
@@ -74,6 +74,20 @@ const report = {
                 label: "German",
                 status: "needs_review",
                 explanation: "No level confirmed",
+                factIds: [],
+                evidenceIds: [],
+              },
+            ],
+          },
+          {
+            ignored: false,
+            requirement: { importance: "required", evidence: { text: "Robot Framework" } },
+            findings: [
+              {
+                kind: "skill",
+                label: "Robot Framework",
+                status: "no_evidence",
+                explanation: "No evidence confirmed",
                 factIds: [],
                 evidenceIds: [],
               },
@@ -100,10 +114,53 @@ describe("local CV and letter drafts", () => {
     expect(draft.cvText).not.toContain("Python");
     expect(draft.cvText).not.toContain("Robot Framework");
     expect(draft.letterText).toContain("Example Company");
+    expect(draft.letterText).toContain("GitHub: https://github.com/example");
+    expect(draft.letterText).toContain("nie mam jeszcze potwierdzenia pracy z: Robot Framework");
+    expect(draft.letterText).toContain("Czy tę pracę zdalną można wykonywać z Polski?");
     expect(draft.reviewNotes.join(" ")).toContain("Robot Framework");
     expect(draft.reviewNotes.join(" ")).toContain("German B1");
     expect(draft.letterText).toContain(
       "nie przedstawiam go jako pełnoetatowego doświadczenia komercyjnego",
     );
+  });
+
+  it("tailors support drafts to documented practice without claiming Linux experience", () => {
+    const supportProfile = CandidateProfileSchema.parse({
+      ...profile,
+      facts: [
+        ...profile.facts,
+        {
+          id: "internships",
+          category: "experience",
+          statement:
+            "Windows troubleshooting, PC assembly and monitoring-system installation in school internship",
+          basis: "documented",
+          evidenceIds: ["cv"],
+        },
+      ],
+    });
+    const supportReport = {
+      ...report,
+      profileHash: createHash("sha256").update(JSON.stringify(supportProfile)).digest("hex"),
+      rows: [
+        {
+          ...report.rows[0],
+          title: "Junior Linux Administrator",
+          location: "Opole",
+          workplaceType: "onsite",
+        },
+      ],
+    };
+    const brief = buildApplicationBrief(
+      supportReport,
+      supportProfile,
+      jobId,
+      "2026-10-02T11:00:00.000Z",
+    ).brief;
+    const draft = buildLocalDraft(brief, contact, "2026-10-02T11:00:00.000Z");
+    expect(draft.letterText).toContain("instalowałem systemy monitoringu");
+    expect(draft.letterText).toContain("administracji systemami");
+    expect(draft.cvText).toContain("Diagnostyka Windows");
+    expect(draft.letterText).not.toContain("administrowałem systemami Linux");
   });
 });

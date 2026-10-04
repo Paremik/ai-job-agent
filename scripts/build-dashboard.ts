@@ -1,6 +1,7 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { buildDashboardData } from "../src/dashboard/view-model.js";
+import { writeAtomicFile } from "../src/dashboard/atomic-file.js";
 
 export async function loadApplicationTrackers(privateFolder: URL): Promise<unknown[]> {
   const tracker: unknown[] = [];
@@ -48,7 +49,7 @@ export async function buildDashboard() {
     throw new Error("Dashboard template marker is missing or repeated");
   const encoded = Buffer.from(JSON.stringify(data), "utf8").toString("base64");
   const output = new URL("dashboard.html", privateFolder);
-  await writeFile(output, template.replace(marker, encoded));
+  await writeAtomicFile(output, template.replace(marker, encoded));
   console.log(`Панель создана: ${fileURLToPath(output)}`);
   console.log(
     `Вакансий: ${data.counts.all}; черновиков: ${data.drafts.length}. Открой private/dashboard.html в браузере.`,

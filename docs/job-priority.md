@@ -14,6 +14,11 @@ mean zero experience is required. Title recognition is limited and heuristic;
 unknown roles remain reviewable. Entry-level non-IT roles may appear because this
 step does not classify occupation or establish overall suitability.
 
+Within otherwise comparable rows, titles that mention software development,
+testing/QA, IT support, or system administration get a soft ordering preference because these are the
+candidate's stated search directions. This uses title keywords only: it does not
+verify duties, remove other roles or authorize an application.
+
 The JSON report stores reasons and experience evidence for each priority. The full
 Markdown report shows reasons; `private/priority-shortlist.md` provides the first
 20 jobs and links. Location and authorization still require separate confirmation.

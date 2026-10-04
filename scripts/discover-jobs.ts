@@ -1,4 +1,5 @@
 import { PublicBoardSource } from "../src/sources/public-boards.js";
+import { AshbyRemotePolandSource, RemoteSearchSchema } from "../src/sources/ashby-remote-poland.js";
 import { readFile } from "node:fs/promises";
 import { JoobleSource, PolandSearchSchema } from "../src/sources/jooble/jooble-source.js";
 import { GreenhouseSource } from "../src/sources/greenhouse/index.js";
@@ -12,12 +13,19 @@ import { SmartRecruitersSource } from "../src/sources/smartrecruiters/index.js";
 
 async function main() {
   const onlyBoards = process.argv.includes("--boards");
-  const onlyPoland = process.argv.includes("--poland") || onlyBoards;
+  const onlyRemote = process.argv.includes("--remote");
+  const requestedPoland = process.argv.includes("--poland");
+  if ([onlyBoards, onlyRemote, requestedPoland].filter(Boolean).length > 1) {
+    console.error("Choose only one discovery mode: --boards, --poland or --remote.");
+    process.exitCode = 1;
+    return;
+  }
+  const onlyPoland = requestedPoland || onlyBoards;
   const sources: JobSource[] = [];
   const sourceAccounts = new Map<string, string>();
 
   const greenhouseBoard = process.env.GREENHOUSE_BOARD_TOKEN?.trim();
-  if (greenhouseBoard && !onlyPoland) {
+  if (greenhouseBoard && !onlyPoland && !onlyRemote) {
     sourceAccounts.set("greenhouse", greenhouseBoard);
     sources.push(
       new GreenhouseSource({
@@ -28,7 +36,7 @@ async function main() {
   }
 
   const leverSite = process.env.LEVER_SITE?.trim();
-  if (leverSite && !onlyPoland) {
+  if (leverSite && !onlyPoland && !onlyRemote) {
     const regionValue = process.env.LEVER_REGION?.trim() || "global";
     if (regionValue !== "global" && regionValue !== "eu") {
       throw new Error("LEVER_REGION must be either global or eu");
@@ -44,7 +52,7 @@ async function main() {
   }
 
   const smartRecruitersCompany = process.env.SMARTRECRUITERS_COMPANY_IDENTIFIER?.trim();
-  if (smartRecruitersCompany && !onlyPoland) {
+  if (smartRecruitersCompany && !onlyPoland && !onlyRemote) {
     sourceAccounts.set("smartrecruiters", smartRecruitersCompany);
     const limitValue = process.env.SMARTRECRUITERS_MAX_POSTINGS?.trim();
     const maxPostings = limitValue ? Number(limitValue) : undefined;
@@ -70,7 +78,7 @@ async function main() {
     if (!joobleKey && !onlyBoards)
       console.log("Jooble skipped: no key configured; public boards still run.");
   }
-  if (joobleKey && !onlyBoards) {
+  if (joobleKey && !onlyBoards && !onlyRemote) {
     const config = PolandSearchSchema.parse(
       JSON.parse(await readFile(new URL("../config/search-poland.json", import.meta.url), "utf8")),
     );
@@ -79,6 +87,13 @@ async function main() {
     console.log(
       `Poland Jooble search: up to ${config.queries.length * config.pagesPerQuery} requests; snippets need full-posting review.`,
     );
+  }
+  if (onlyRemote) {
+    const config = RemoteSearchSchema.parse(
+      JSON.parse(await readFile(new URL("../config/search-remote.json", import.meta.url), "utf8")),
+    );
+    sources.push(new AshbyRemotePolandSource(config));
+    sourceAccounts.set("ashby_remote_pl", "selected-boards");
   }
   if (sources.length === 0) {
     console.error(

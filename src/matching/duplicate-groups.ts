@@ -17,6 +17,12 @@ export function duplicateKey(row: Pick<RecordWithIdentity, "company" | "title">)
   const title = words(row.title.replace(/\((?:k\/m|m\/k|f\/m\/x|k\/m\/x)\)/gi, ""));
   return `${company}::${title}`;
 }
+export function possibleDuplicateKey(
+  row: Pick<RecordWithIdentity, "company" | "title" | "location">,
+) {
+  const location = row.location ? words(row.location) : "";
+  return location ? `${duplicateKey(row)}::${location}` : null;
+}
 // Display grouping only: separate offices/requisitions remain visible and are never deleted.
 export function groupPossibleDuplicates<T extends RecordWithIdentity>(rows: T[]) {
   const groups = new Map<string, T[]>();

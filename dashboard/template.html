@@ -158,6 +158,11 @@
         line-height: 1.45;
         margin-bottom: 22px;
       }
+      .notice.warning {
+        border-color: #e8d8ae;
+        background: #fff8e7;
+        color: #73531c;
+      }
       .stats {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -183,14 +188,84 @@
         display: block;
         margin-top: 6px;
       }
-      .toolbar {
+      .filters-panel {
+        background: #fff;
+        border: 1px solid #e3e9e3;
+        border-radius: 17px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 8px 24px #0c28120c;
+      }
+      .filters-head,
+      .filters-search-row,
+      .filters-section-head {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .filters-head h2 {
+        font-size: 16px;
+        margin: 0 0 3px;
+      }
+      .filters-head p {
+        color: #718077;
+        font-size: 12px;
+        margin: 0;
+      }
+      .filters-search-row {
+        margin-top: 16px;
+        align-items: end;
+      }
+      .filters-search-field {
+        flex: 1 1 350px;
+      }
+      .filters-section {
+        margin-top: 16px;
+      }
+      .filters-section + .filters-section {
+        border-top: 1px solid #edf0eb;
+        padding-top: 15px;
+      }
+      .filters-section-head strong {
+        color: #344b3a;
+        font-size: 13px;
+      }
+      .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 10px;
-        margin: 0 0 15px;
+        margin-top: 10px;
+      }
+      .queue-tabs,
+      .active-filters {
+        display: flex;
         flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .queue-tabs {
+        margin-top: 11px;
+      }
+      .active-filters {
+        margin-top: 14px;
+        min-height: 24px;
+      }
+      .active-filter-chip {
+        border: 1px solid #bad8bd;
+        background: #ecf7e9;
+        color: #285136;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .active-filter-chip:hover {
+        border-color: #6eae78;
       }
       .search {
-        flex: 1 1 280px;
+        width: 100%;
         min-width: 0;
         height: 43px;
         border: 1px solid #dbe4db;
@@ -218,21 +293,19 @@
         border-color: #9bd295;
         color: #285136;
       }
-      .filter-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: end;
-        gap: 10px;
-        margin-bottom: 15px;
-      }
       .filter-field {
         display: grid;
         gap: 5px;
-        flex: 1 1 150px;
-        min-width: 140px;
+        min-width: 0;
         color: #5b6d60;
         font-size: 12px;
         font-weight: 700;
+      }
+      .city-quick {
+        height: 27px;
+        padding: 0 9px;
+        font-size: 11px;
+        justify-self: start;
       }
       .filter-field input,
       .filter-field select {
@@ -251,7 +324,12 @@
         box-shadow: 0 0 0 3px #4d9a6526;
       }
       .filter-reset {
-        align-self: end;
+        height: 36px;
+        white-space: nowrap;
+      }
+      .filter-reset:disabled {
+        opacity: 0.48;
+        cursor: default;
       }
       .workspace {
         display: grid;
@@ -708,6 +786,9 @@
         .job-list {
           max-height: 430px;
         }
+        .filter-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
       @media (max-width: 700px) {
         .shell {
@@ -746,6 +827,24 @@
         .detail {
           padding: 20px 17px;
         }
+        .filters-panel {
+          padding: 16px;
+        }
+        .filters-search-row {
+          display: block;
+        }
+        .filters-search-row .toggle {
+          width: 100%;
+          margin-top: 10px;
+        }
+      }
+      @media (max-width: 420px) {
+        .filter-grid {
+          grid-template-columns: 1fr;
+        }
+        .filters-head {
+          align-items: start;
+        }
       }
     </style>
   </head>
@@ -768,6 +867,9 @@
             <button data-view="actions" type="button">
               Следующие действия <span class="nav-count" id="nav-actions">0</span>
             </button>
+            <button data-view="notifications" type="button">
+              Уведомления <span class="nav-count" id="nav-notifications">…</span>
+            </button>
             <button data-view="drafts" type="button">
               Пакеты откликов <span class="nav-count" id="nav-drafts">0</span>
             </button>
@@ -784,8 +886,16 @@
             <h1 id="page-title">Вакансии</h1>
             <p class="subtitle" id="page-subtitle">Сравнение объявлений с твоим профилем</p>
           </div>
-          <span class="report-date" id="report-date"></span>
+          <div>
+            <p class="report-date" id="report-date"></p>
+            <button id="refresh-report" class="toggle" type="button">Обновить из базы</button>
+          </div>
         </div>
+        <div class="notice" id="refresh-notice" role="status" hidden>
+          <span id="refresh-message"></span>
+          <a id="open-refreshed-report" href="/" hidden>Открыть обновлённый список</a>
+        </div>
+        <div class="notice" id="discovery-notice" role="status" hidden></div>
         <div class="notice">
           Здесь показан порядок проверки, а не оценка шанса получить работу. Перед откликом проверь
           актуальность вакансии, требования и условия у работодателя.
@@ -800,62 +910,102 @@
             <div class="stat"><strong id="count-clarify">0</strong><span>Нужно уточнить</span></div>
             <div class="stat"><strong id="count-defer">0</strong><span>Отложены</span></div>
           </div>
-          <div class="toolbar">
-            <input
-              class="search"
-              id="search"
-              type="search"
-              placeholder="Название, компания, город, навык…"
-              aria-label="Поиск вакансий"
-            /><button class="toggle" id="skill-toggle" type="button" aria-pressed="false">
-              Есть совпадения навыков
-            </button>
-          </div>
-          <div class="filter-row" aria-label="Дополнительные фильтры вакансий">
-            <label class="filter-field"
-              >Город
-              <input
-                id="filter-city"
-                type="search"
-                placeholder="Например, Opole"
-                autocomplete="off"
-              />
-            </label>
-            <label class="filter-field"
-              >Формат работы
-              <select id="filter-workplace">
-                <option value="all">Любой</option>
-                <option value="remote">Удалённо</option>
-                <option value="hybrid">Гибрид</option>
-                <option value="onsite">На месте</option>
-                <option value="unknown">Не указан</option>
-              </select>
-            </label>
-            <label class="filter-field"
-              >Сайт вакансии
-              <select id="filter-site">
-                <option value="all">Все сайты</option>
-              </select>
-            </label>
-            <label class="filter-field"
-              >Мой статус
-              <select id="filter-stage">
-                <option value="all">Все</option>
-                <option value="new">Без статуса</option>
-                <option value="planned">В планах</option>
-              </select>
-            </label>
-            <button class="toggle filter-reset" id="reset-filters" type="button">
-              Сбросить фильтры
-            </button>
-          </div>
-          <div class="toolbar" aria-label="Фильтр очереди">
-            <button class="toggle active" data-status="all" type="button">Все</button
-            ><button class="toggle" data-status="review_now" type="button">Проверить сейчас</button
-            ><button class="toggle" data-status="clarify_first" type="button">Уточнить</button
-            ><button class="toggle" data-status="defer" type="button">Отложены</button>
-            <button class="toggle" data-status="dismissed" type="button">Отброшенные</button>
-          </div>
+          <section class="filters-panel" aria-labelledby="filters-title">
+            <div class="filters-head">
+              <div>
+                <h2 id="filters-title">Поиск вакансий</h2>
+                <p>Выбранные условия действуют вместе.</p>
+              </div>
+              <button class="toggle filter-reset" id="reset-filters" type="button" disabled>
+                Очистить всё
+              </button>
+            </div>
+            <div class="filters-search-row">
+              <label class="filter-field filters-search-field" for="search"
+                >Название, компания, город или навык
+                <input
+                  class="search"
+                  id="search"
+                  type="search"
+                  placeholder="Например, Junior React"
+                  autocomplete="off"
+                />
+              </label>
+              <button class="toggle" id="skill-toggle" type="button" aria-pressed="false">
+                Есть совпадения навыков
+              </button>
+            </div>
+            <div class="filters-section">
+              <div class="filters-section-head"><strong>Место и источник</strong></div>
+              <div class="filter-grid">
+                <div class="filter-field">
+                  <label for="filter-city">Город из объявления</label>
+                  <input
+                    id="filter-city"
+                    type="search"
+                    placeholder="Например, Opole"
+                    autocomplete="off"
+                  />
+                  <button
+                    class="toggle city-quick"
+                    id="opole-quick-filter"
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    Ополе
+                  </button>
+                </div>
+                <label class="filter-field"
+                  >Формат работы
+                  <select id="filter-workplace">
+                    <option value="all">Любой</option>
+                    <option value="remote">Удалённо</option>
+                    <option value="hybrid">Гибрид</option>
+                    <option value="onsite">На месте</option>
+                    <option value="unknown">Не указан</option>
+                  </select>
+                </label>
+                <label class="filter-field"
+                  >Сайт вакансии
+                  <select id="filter-site">
+                    <option value="all">Все сайты</option>
+                  </select>
+                </label>
+                <label class="filter-field"
+                  >Моя отметка
+                  <select id="filter-stage">
+                    <option value="all">Любая</option>
+                    <option value="new">Без отметки</option>
+                    <option value="planned">В планах</option>
+                  </select>
+                </label>
+              </div>
+              <button class="toggle" id="remote-poland-toggle" type="button" aria-pressed="false">
+                Удалённо из Польши подтверждено
+              </button>
+            </div>
+            <div class="filters-section">
+              <div class="filters-section-head"><strong>Очередь проверки</strong></div>
+              <div class="queue-tabs" aria-label="Очередь проверки">
+                <button class="toggle active" data-status="all" type="button">Все активные</button>
+                <button
+                  class="toggle"
+                  data-status="first_look"
+                  type="button"
+                  id="first-look-filter"
+                >
+                  Первый просмотр
+                </button>
+                <button class="toggle" data-status="review_now" type="button">
+                  Проверить сейчас
+                </button>
+                <button class="toggle" data-status="clarify_first" type="button">Уточнить</button>
+                <button class="toggle" data-status="defer" type="button">Отложены</button>
+                <button class="toggle" data-status="dismissed" type="button">Отброшенные</button>
+              </div>
+            </div>
+            <div class="active-filters" id="active-filters" aria-live="polite"></div>
+          </section>
           <div class="workspace">
             <section class="panel">
               <div class="panel-head">
@@ -883,6 +1033,16 @@
               ><span class="muted" id="actions-count"></span>
             </div>
             <div id="actions-list"></div>
+          </div>
+        </section>
+        <section id="notifications-view" hidden>
+          <div class="panel">
+            <div class="panel-head">
+              <strong>Требует внимания</strong
+              ><button id="refresh-notifications" class="toggle" type="button">Обновить</button>
+            </div>
+            <p class="muted" id="notifications-message" role="status"></p>
+            <div id="notifications-list"></div>
           </div>
         </section>
         <section id="drafts-view" hidden><div class="draft-grid" id="draft-grid"></div></section>
@@ -919,11 +1079,17 @@
         site: "all",
         stage: "all",
         skills: false,
+        remoteConfirmed: false,
         page: 1,
         selected: null,
         records: new Map(),
         ready: false,
         busy: false,
+        notifications: [],
+        notificationsReady: false,
+        notificationsBusy: false,
+        notificationsError: "",
+        notificationsReport: null,
       };
       const pageSize = 30;
       const byId = (id) => document.getElementById(id);
@@ -959,8 +1125,48 @@
       byId("count-now").textContent = data.counts.review_now;
       byId("count-clarify").textContent = data.counts.clarify_first;
       byId("count-defer").textContent = data.counts.defer;
+      byId("first-look-filter").textContent =
+        "Первый просмотр (" + data.rows.filter((row) => row.firstLook).length + ")";
+      byId("remote-poland-toggle").textContent =
+        "Удалённо из Польши подтверждено (" +
+        data.rows.filter(
+          (row) => row.workplaceType === "remote" && row.locationStatus === "eligible",
+        ).length +
+        ")";
       byId("report-date").textContent =
         "Отчёт: " + new Date(data.generatedAt).toLocaleString("ru-RU");
+      if (data.discovery) {
+        const discovery = data.discovery;
+        const clockMismatch =
+          discovery.finishedAt && Date.parse(discovery.finishedAt) > Date.now() + 5 * 60_000;
+        const date = discovery.finishedAt
+          ? new Date(discovery.finishedAt).toLocaleString("ru-RU")
+          : "время завершения не записано";
+        const status = {
+          completed: "завершён без ошибок источников",
+          partial: "завершён с ошибками источников",
+          failed: "не удался",
+          running: "ещё выполнялся при создании отчёта",
+        }[discovery.status];
+        byId("discovery-notice").textContent =
+          "Последний сохранённый сбор: " +
+          date +
+          " · " +
+          status +
+          " · вакансий принято: " +
+          discovery.valid +
+          ", отклонено: " +
+          discovery.rejected +
+          ". Сбор может охватывать лишь часть сайтов." +
+          (clockMismatch
+            ? " Время сбора позже текущего времени компьютера: проверь часы перед оценкой свежести."
+            : "");
+        byId("discovery-notice").classList.toggle(
+          "warning",
+          discovery.status !== "completed" || Boolean(clockMismatch),
+        );
+        byId("discovery-notice").hidden = false;
+      }
       const siteCounts = new Map();
       for (const row of data.rows) siteCounts.set(row.site, (siteCounts.get(row.site) || 0) + 1);
       for (const [site, count] of [...siteCounts].sort((a, b) => a[0].localeCompare(b[0]))) {
@@ -1023,6 +1229,7 @@
           const saved = await response.json();
           state.records.set(row.url, saved.record);
           storageMessage("");
+          loadNotifications();
         } catch {
           storageMessage(
             "Не удалось сохранить отметку. Проверь, работает ли локальная панель, и повтори действие.",
@@ -1067,6 +1274,31 @@
       }
 
       function updateNavigationCounts() {
+        byId("opole-quick-filter").textContent =
+          "Ополе (" +
+          data.rows.filter(
+            (row) =>
+              normal(row.location).includes("opole") &&
+              !archived(review(row)) &&
+              review(row)?.status !== "dismissed",
+          ).length +
+          ")";
+        byId("first-look-filter").textContent =
+          "Первый просмотр (" +
+          data.rows.filter(
+            (row) => row.firstLook && !archived(review(row)) && review(row)?.status !== "dismissed",
+          ).length +
+          ")";
+        byId("remote-poland-toggle").textContent =
+          "Удалённо из Польши подтверждено (" +
+          data.rows.filter(
+            (row) =>
+              row.workplaceType === "remote" &&
+              row.locationStatus === "eligible" &&
+              !archived(review(row)) &&
+              review(row)?.status !== "dismissed",
+          ).length +
+          ")";
         byId("nav-important").textContent = [...state.records.values()].filter(
           (item) => item.starred,
         ).length;
@@ -1136,6 +1368,7 @@
                 (!archived(review(row)) && review(row)?.status !== "dismissed")) &&
             (state.status === "all" ||
               state.status === "dismissed" ||
+              (state.status === "first_look" && row.firstLook) ||
               row.status === state.status) &&
             (!city || normal(row.location).includes(city)) &&
             (state.workplace === "all" || row.workplaceType === state.workplace) &&
@@ -1144,6 +1377,8 @@
               (state.stage === "new"
                 ? !review(row)?.status
                 : review(row)?.status === state.stage)) &&
+            (!state.remoteConfirmed ||
+              (row.workplaceType === "remote" && row.locationStatus === "eligible")) &&
             (!state.skills || row.matchedSkills.length > 0) &&
             (!query ||
               normal(
@@ -1159,7 +1394,78 @@
         );
       }
 
+      function clearFilter(key) {
+        const defaults = { query: "", city: "", workplace: "all", site: "all", stage: "all" };
+        const controls = {
+          query: "search",
+          city: "filter-city",
+          workplace: "filter-workplace",
+          site: "filter-site",
+          stage: "filter-stage",
+        };
+        if (key === "skills") {
+          state.skills = false;
+          byId("skill-toggle").classList.remove("active");
+          byId("skill-toggle").setAttribute("aria-pressed", "false");
+        } else if (key === "remoteConfirmed") {
+          state.remoteConfirmed = false;
+          byId("remote-poland-toggle").classList.remove("active");
+          byId("remote-poland-toggle").setAttribute("aria-pressed", "false");
+        } else if (key === "status") {
+          state.status = "all";
+        } else {
+          state[key] = defaults[key];
+          byId(controls[key]).value = defaults[key];
+        }
+        state.page = 1;
+        renderList();
+      }
+
+      function renderActiveFilters() {
+        const opoleSelected = normal(state.city.trim()) === "opole";
+        byId("opole-quick-filter").classList.toggle("active", opoleSelected);
+        byId("opole-quick-filter").setAttribute("aria-pressed", String(opoleSelected));
+        const active = [];
+        if (state.query.trim()) active.push(["query", `Поиск: ${state.query.trim()}`]);
+        if (state.city.trim()) active.push(["city", `Город: ${state.city.trim()}`]);
+        for (const [key, id, label] of [
+          ["workplace", "filter-workplace", "Формат"],
+          ["site", "filter-site", "Сайт"],
+          ["stage", "filter-stage", "Моя отметка"],
+        ]) {
+          if (state[key] !== "all")
+            active.push([key, `${label}: ${byId(id).selectedOptions[0].textContent}`]);
+        }
+        if (state.skills) active.push(["skills", "Есть совпадения навыков"]);
+        if (state.remoteConfirmed)
+          active.push(["remoteConfirmed", "Удалённо из Польши подтверждено"]);
+        if (state.status !== "all") {
+          const button = document.querySelector(`[data-status="${state.status}"]`);
+          active.push(["status", `Очередь: ${button.textContent}`]);
+        }
+        for (const button of document.querySelectorAll("[data-status]")) {
+          const selected = button.dataset.status === state.status;
+          button.classList.toggle("active", selected);
+          button.setAttribute("aria-pressed", String(selected));
+        }
+        byId("reset-filters").disabled = active.length === 0;
+        const wrap = byId("active-filters");
+        wrap.replaceChildren();
+        if (!active.length) {
+          wrap.append(node("span", "muted", "Дополнительные фильтры не выбраны."));
+          return;
+        }
+        for (const [key, label] of active) {
+          const chip = node("button", "active-filter-chip", `${label} ×`);
+          chip.type = "button";
+          chip.setAttribute("aria-label", `Убрать фильтр: ${label}`);
+          chip.addEventListener("click", () => clearFilter(key));
+          wrap.append(chip);
+        }
+      }
+
       function renderList() {
+        renderActiveFilters();
         const rows = filteredRows();
         const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
         state.page = Math.min(state.page, totalPages);
@@ -1192,6 +1498,19 @@
             meta.append(node("span", "badge user-status", actionName[saved.status]));
           if (draftsByUrl.has(row.url))
             meta.append(node("span", "badge review_now", "CV подготовлено"));
+          if (row.possibleDuplicates.length) meta.append(node("span", "badge", "Возможный повтор"));
+          if (row.workplaceType === "remote")
+            meta.append(
+              node(
+                "span",
+                "badge " + row.status,
+                row.locationStatus === "eligible"
+                  ? "Из Польши подтверждено"
+                  : row.locationStatus === "ineligible"
+                    ? "Из Польши нельзя"
+                    : "Из Польши уточнить",
+              ),
+            );
           card.append(meta);
           card.addEventListener("click", () => {
             state.selected = row.id;
@@ -1376,6 +1695,20 @@
               row.site,
           ),
         );
+        if (row.lastSeenAt) {
+          const seenInFuture = Date.parse(row.lastSeenAt) > Date.now() + 5 * 60_000;
+          detail.append(
+            node(
+              "p",
+              "muted",
+              "Последний раз найдена источником: " +
+                new Date(row.lastSeenAt).toLocaleString("ru-RU") +
+                (seenInFuture
+                  ? ". Время позже текущих часов компьютера; свежесть нельзя оценить по этой дате."
+                  : ". Это не подтверждает, что объявление ещё открыто."),
+            ),
+          );
+        }
         const saved = review(row);
         const controls = node("div", "action-bar");
         controls.append(starButton(row));
@@ -1397,6 +1730,21 @@
         if (row.sourceUrl && row.sourceUrl !== row.url)
           links.append(externalLink("Проверенный источник ↗", row.sourceUrl, "secondary-link"));
         detail.append(links);
+        if (row.possibleDuplicates.length) {
+          const similar = node("div");
+          similar.append(
+            node(
+              "p",
+              "muted",
+              "То же название, компания и город. Это могут быть отдельные вакансии; проверь ссылки перед откликом.",
+            ),
+          );
+          for (const item of row.possibleDuplicates)
+            similar.append(
+              externalLink("Другая запись · " + item.site + " ↗", item.url, "secondary-link"),
+            );
+          detail.append(section("Возможные повторы", similar));
+        }
         detail.append(section("Подготовленные материалы", packageLinks(row.url)));
         detail.append(draftControl(row));
         detail.append(
@@ -1539,6 +1887,77 @@
         }
       }
 
+      async function loadNotifications(acknowledge) {
+        if (state.notificationsBusy) return;
+        state.notificationsBusy = true;
+        renderNotifications();
+        try {
+          const response = await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(acknowledge ? { acknowledge } : {}),
+          });
+          if (!response.ok) throw new Error("Notifications unavailable");
+          const result = await response.json();
+          state.notifications = result.notifications;
+          state.notificationsReport = result.generatedAt;
+          state.notificationsReady = true;
+          state.notificationsError = "";
+        } catch {
+          state.notificationsError =
+            "Не удалось обновить уведомления. Проверь, работает ли локальная панель, и нажми «Обновить».";
+        } finally {
+          state.notificationsBusy = false;
+          byId("nav-notifications").textContent = state.notificationsError
+            ? "!"
+            : state.notifications.length;
+          renderNotifications();
+        }
+      }
+
+      function renderNotifications() {
+        byId("refresh-notifications").disabled = state.notificationsBusy;
+        byId("notifications-message").textContent =
+          state.notificationsError ||
+          (!state.notificationsReady
+            ? "Загружаем уведомления…"
+            : "Первый запуск запоминает текущие вакансии. Новые уведомления — после обновления локального отчёта. «Прочитано» скрывает уведомление, само действие остаётся в плане." +
+              (state.notificationsReport !== data.generatedAt
+                ? " Список вакансий изменился: обнови страницу, чтобы увидеть свежие карточки."
+                : ""));
+        const list = byId("notifications-list");
+        list.replaceChildren();
+        if (state.notificationsReady && !state.notifications.length) {
+          list.append(node("div", "empty", "Непрочитанных уведомлений нет."));
+        }
+        for (const item of state.notifications) {
+          const entry = node("article", "archive-row");
+          entry.append(
+            node("span", "job-company", item.company),
+            node("strong", "", item.title),
+            node("p", "muted", item.reason),
+          );
+          const links = node("div", "detail-links");
+          links.append(externalLink("Открыть вакансию ↗", item.url, "secondary-link"));
+          if (item.kind === "action") {
+            const open = node("button", "toggle", "Перейти к действиям");
+            open.type = "button";
+            open.addEventListener("click", () => {
+              state.view = "actions";
+              renderView();
+            });
+            links.append(open);
+          }
+          const read = node("button", "toggle", "Прочитано");
+          read.type = "button";
+          read.disabled = state.notificationsBusy || Boolean(state.notificationsError);
+          read.addEventListener("click", () => loadNotifications(item.id));
+          links.append(read);
+          entry.append(links);
+          list.append(entry);
+        }
+      }
+
       function renderView() {
         updateNavigationCounts();
         for (const button of document.querySelectorAll("[data-view]"))
@@ -1546,25 +1965,30 @@
         byId("jobs-view").hidden = !["jobs", "important"].includes(state.view);
         byId("archive-view").hidden = state.view !== "archive";
         byId("actions-view").hidden = state.view !== "actions";
+        byId("notifications-view").hidden = state.view !== "notifications";
         byId("drafts-view").hidden = state.view !== "drafts";
         byId("page-title").textContent = {
           jobs: "Вакансии",
           important: "Важные вакансии",
           archive: "Архив откликов",
           actions: "Следующие действия",
+          notifications: "Уведомления",
           drafts: "Пакеты откликов",
         }[state.view];
         byId("page-subtitle").textContent =
-          state.view === "actions"
-            ? "Что пора проверить и какие отклики требуют следующего шага."
-            : state.view === "archive"
-              ? "Последние 200 отправленных заявок остаются здесь после обновления списка вакансий."
-              : state.view === "drafts"
-                ? "CV, письма и их текущие статусы в локальном журнале."
-                : "Сравнение объявлений с твоим профилем";
+          state.view === "notifications"
+            ? "Новые вакансии для просмотра и напоминания о наступивших сроках."
+            : state.view === "actions"
+              ? "Что пора проверить и какие отклики требуют следующего шага."
+              : state.view === "archive"
+                ? "Последние 200 отправленных заявок остаются здесь после обновления списка вакансий."
+                : state.view === "drafts"
+                  ? "CV, письма и их текущие статусы в локальном журнале."
+                  : "Сравнение объявлений с твоим профилем";
         if (["jobs", "important"].includes(state.view)) renderList();
         else if (state.view === "archive") renderArchive();
         else if (state.view === "actions") renderActions();
+        else if (state.view === "notifications") renderNotifications();
         else renderDrafts();
       }
       for (const button of document.querySelectorAll("[data-view]"))
@@ -1589,10 +2013,23 @@
         state.page = 1;
         renderList();
       });
+      byId("opole-quick-filter").addEventListener("click", () => {
+        state.city = normal(state.city.trim()) === "opole" ? "" : "Opole";
+        byId("filter-city").value = state.city;
+        state.page = 1;
+        renderList();
+      });
       byId("skill-toggle").addEventListener("click", (event) => {
         state.skills = !state.skills;
         event.currentTarget.classList.toggle("active", state.skills);
         event.currentTarget.setAttribute("aria-pressed", String(state.skills));
+        state.page = 1;
+        renderList();
+      });
+      byId("remote-poland-toggle").addEventListener("click", (event) => {
+        state.remoteConfirmed = !state.remoteConfirmed;
+        event.currentTarget.classList.toggle("active", state.remoteConfirmed);
+        event.currentTarget.setAttribute("aria-pressed", String(state.remoteConfirmed));
         state.page = 1;
         renderList();
       });
@@ -1614,6 +2051,7 @@
         state.site = "all";
         state.stage = "all";
         state.skills = false;
+        state.remoteConfirmed = false;
         state.status = "all";
         state.page = 1;
         byId("search").value = "";
@@ -1623,12 +2061,77 @@
         byId("filter-stage").value = "all";
         byId("skill-toggle").classList.remove("active");
         byId("skill-toggle").setAttribute("aria-pressed", "false");
+        byId("remote-poland-toggle").classList.remove("active");
+        byId("remote-poland-toggle").setAttribute("aria-pressed", "false");
         for (const item of document.querySelectorAll("[data-status]"))
           item.classList.toggle("active", item.dataset.status === "all");
         renderList();
       });
       renderView();
       loadReviews();
+      loadNotifications();
+      let refreshTimer;
+      let refreshNeedsStatus = false;
+      async function refreshReport(start = false) {
+        clearTimeout(refreshTimer);
+        const button = byId("refresh-report");
+        button.disabled = true;
+        byId("refresh-notice").hidden = false;
+        byId("open-refreshed-report").hidden = true;
+        if (start)
+          byId("refresh-message").textContent =
+            "Получаем вакансии из базы и сравниваем с профилем…";
+        try {
+          const response = await fetch(
+            "/api/refresh",
+            start
+              ? {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: "{}",
+                }
+              : { cache: "no-store" },
+          );
+          if (!response.ok) throw new Error("Refresh unavailable");
+          const result = await response.json();
+          refreshNeedsStatus = false;
+          if (result.status === "running") {
+            button.textContent = "Обновляем…";
+            byId("refresh-message").textContent =
+              "Получаем вакансии, уже собранные в базе. Обновление может занять несколько минут. Можно продолжать работу в панели.";
+            refreshTimer = setTimeout(() => refreshReport(), 3000);
+            return;
+          }
+          button.disabled = false;
+          button.textContent = "Обновить из базы";
+          if (result.status === "failed") {
+            byId("refresh-message").textContent =
+              "Обновить список не удалось. Текущая панель сохранена. Проверь подключение к базе и повтори обновление.";
+          } else if (result.status === "completed" && result.startedAt > data.generatedAt) {
+            byId("refresh-message").textContent =
+              "Свежий список готов. Сохрани изменения в открытом черновике перед переходом. ";
+            byId("open-refreshed-report").hidden = false;
+            loadNotifications();
+          } else {
+            byId("refresh-notice").hidden = true;
+          }
+        } catch {
+          refreshNeedsStatus = true;
+          button.disabled = false;
+          button.textContent = "Проверить обновление";
+          byId("refresh-message").textContent =
+            "Не удалось узнать состояние обновления. Проверь, работает ли локальная панель, и нажми кнопку ещё раз.";
+        }
+      }
+      byId("refresh-report").addEventListener("click", () => refreshReport(!refreshNeedsStatus));
+      refreshReport();
+      byId("refresh-notifications").addEventListener("click", () => loadNotifications());
+      setInterval(() => {
+        if (!document.hidden) loadNotifications();
+      }, 60_000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) loadNotifications();
+      });
     </script>
   </body>
 </html>

@@ -3,18 +3,20 @@ import {
   DescriptionReviewsSchema,
   reviewedDescription,
 } from "../src/matching/reviewed-description.js";
+import { SourceChecksSchema, verifiedSourceCheck } from "../src/matching/source-checks.js";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { CandidateProfileSchema } from "../src/domain/candidate-profile.js";
 import { createDatabase } from "../src/infrastructure/database/client.js";
-import { jobs, companies } from "../src/infrastructure/database/schema.js";
+import { jobs, companies, agentRuns } from "../src/infrastructure/database/schema.js";
 import { extractRequirements } from "../src/matching/extract-requirements.js";
 import { compareRequirements } from "../src/matching/compare-requirements.js";
 import { buildLocationReport } from "../src/matching/location-report.js";
 import { jobPriority, compareJobPriority } from "../src/matching/job-priority.js";
 import { prioritySignals } from "../src/matching/priority-signals.js";
 import { screeningDecision } from "../src/matching/screening-decision.js";
+import { writeAtomicFile } from "../src/dashboard/atomic-file.js";
 
 async function main() {
   const folder = new URL("../private/", import.meta.url);
@@ -39,12 +41,32 @@ async function main() {
         description: jobs.description,
         location: jobs.location,
         workplaceType: jobs.workplaceType,
+        lastSeenAt: jobs.lastSeenAt,
       })
       .from(jobs)
       .innerJoin(companies, eq(jobs.companyId, companies.id))
       .orderBy(asc(jobs.id));
+    const [latestRun] = await database.db
+      .select({
+        status: agentRuns.status,
+        finishedAt: agentRuns.finishedAt,
+        fetched: agentRuns.fetched,
+        valid: agentRuns.valid,
+        rejected: agentRuns.rejected,
+      })
+      .from(agentRuns)
+      .orderBy(desc(agentRuns.startedAt))
+      .limit(1);
     const descriptionReviews = DescriptionReviewsSchema.parse(
       await readFile(new URL("description-reviews.json", folder), "utf8")
+        .then(JSON.parse)
+        .catch((error: unknown) => {
+          if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
+          throw error;
+        }),
+    );
+    const sourceChecks = SourceChecksSchema.parse(
+      await readFile(new URL("source-checks.json", folder), "utf8")
         .then(JSON.parse)
         .catch((error: unknown) => {
           if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
@@ -54,6 +76,7 @@ async function main() {
     const saved = stored.map((job) => ({
       ...job,
       ...reviewedDescription(job, descriptionReviews),
+      sourceCheck: verifiedSourceCheck(job, sourceChecks),
     }));
     const locations = new Map(
       buildLocationReport(profile, saved, reviews).rows.map((row) => [row.id, row]),
@@ -75,7 +98,7 @@ async function main() {
           locationDecision,
           comparison,
           priority,
-          screening: screeningDecision(priority, locationDecision),
+          screening: screeningDecision(priority, locationDecision, metadata.sourceCheck),
         };
       })
       .sort(compareJobPriority);
@@ -100,11 +123,20 @@ async function main() {
       ).length,
     };
     await mkdir(folder, { recursive: true });
-    await writeFile(
+    await writeAtomicFile(
       new URL("comparison-report.json", folder),
       JSON.stringify(
         {
           generatedAt: new Date().toISOString(),
+          discovery: latestRun
+            ? {
+                status: latestRun.status,
+                finishedAt: latestRun.finishedAt?.toISOString() ?? null,
+                fetched: latestRun.fetched,
+                valid: latestRun.valid,
+                rejected: latestRun.rejected,
+              }
+            : null,
           profileHash: createHash("sha256").update(JSON.stringify(profile)).digest("hex"),
           summary,
           rows,

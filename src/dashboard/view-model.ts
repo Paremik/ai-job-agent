@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { possibleDuplicateKey } from "../matching/duplicate-groups.js";
 
 const PublicUrl = z
   .string()
@@ -18,6 +19,15 @@ const Statement = z.object({
 
 const Report = z.object({
   generatedAt: z.string(),
+  discovery: z
+    .object({
+      status: z.enum(["running", "completed", "partial", "failed"]),
+      finishedAt: z.iso.datetime().nullable(),
+      fetched: z.number().int().nonnegative(),
+      valid: z.number().int().nonnegative(),
+      rejected: z.number().int().nonnegative(),
+    })
+    .nullish(),
   rows: z.array(
     z.object({
       id: z.string(),
@@ -26,14 +36,29 @@ const Report = z.object({
       canonicalUrl: PublicUrl,
       location: z.string().nullable(),
       workplaceType: z.string(),
+      lastSeenAt: z.iso.datetime().optional(),
       locationDecision: z.object({ status: z.string(), explanation: z.string() }).nullish(),
       descriptionReview: z.object({ sourceUrl: PublicUrl }).nullish(),
+      sourceCheck: z
+        .object({
+          sourceUrl: PublicUrl,
+          checkedAt: z.iso.datetime(),
+          entryLevelListed: z.boolean(),
+        })
+        .nullish(),
       comparison: z.object({
         matchedSkills: z.array(z.string()),
         skillsWithoutEvidence: z.array(z.string()),
         statements: z.array(Statement),
       }),
-      priority: z.object({ tier: z.string(), reasons: z.array(z.string()) }),
+      priority: z.object({
+        tier: z.string(),
+        titleLevel: z.string().default("unknown"),
+        signals: z
+          .object({ targetRole: z.string(), languageGap: z.boolean().default(false) })
+          .nullish(),
+        reasons: z.array(z.string()),
+      }),
       screening: z.object({
         status: z.enum(["review_now", "clarify_first", "defer"]),
         reasons: z.array(z.string()),
@@ -67,6 +92,7 @@ function jobSite(value: string): string {
   const host = new URL(value).hostname.toLowerCase();
   const isSite = (domain: string) => host === domain || host.endsWith(`.${domain}`);
   if (isSite("greenhouse.io")) return "Greenhouse";
+  if (isSite("ashbyhq.com")) return "Ashby";
   if (isSite("lever.co")) return "Lever";
   if (isSite("smartrecruiters.com")) return "SmartRecruiters";
   if (isSite("jooble.org")) return "Jooble";
@@ -86,14 +112,28 @@ export function buildDashboardData(reportInput: unknown, trackerInput: unknown) 
     company: plain(row.company, 120),
     url: row.canonicalUrl,
     site: jobSite(row.canonicalUrl),
-    sourceUrl: row.descriptionReview?.sourceUrl ?? null,
+    sourceUrl: row.descriptionReview?.sourceUrl ?? row.sourceCheck?.sourceUrl ?? null,
+    sourceCheckedAt: row.sourceCheck?.checkedAt ?? null,
     location: plain(row.location ?? "Место не указано", 140),
     workplaceType: row.workplaceType,
+    lastSeenAt: row.lastSeenAt ?? null,
     locationStatus: row.locationDecision?.status ?? "needs_review",
     locationExplanation: plain(
       row.locationDecision?.explanation ?? "Уточнить место и формат работы.",
     ),
     status: row.screening.status,
+    firstLook:
+      row.screening.status === "review_now" ||
+      (row.screening.status === "clarify_first" &&
+        (row.priority.titleLevel === "entry" || row.sourceCheck?.entryLevelListed === true) &&
+        row.priority.signals?.targetRole !== undefined &&
+        row.priority.signals.targetRole !== "other_or_unclear" &&
+        !row.priority.signals.languageGap &&
+        !/\bgerman\b|niemieck\p{L}*|\b(?:brazilian )?portuguese\b|\bspanish\b|\b(?:mid|middle|manager)\b/iu.test(
+          row.title,
+        ) &&
+        (row.comparison.matchedSkills.length > 0 || /^Opole$/iu.test(row.location?.trim() ?? "")) &&
+        row.locationDecision?.status !== "ineligible"),
     tier: row.priority.tier,
     reasons: row.screening.reasons.map((reason) => plain(reason)),
     matchedSkills: row.comparison.matchedSkills.map((skill) => plain(skill, 80)),
@@ -109,6 +149,23 @@ export function buildDashboardData(reportInput: unknown, trackerInput: unknown) 
         importance: statement.requirement.importance,
         text: plain(statement.requirement.evidence.text, 320),
       })),
+  }));
+  // Only flag the same role at the same stated location. Keep every source record visible.
+  const groups = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const key = possibleDuplicateKey(row);
+    if (!key || row.location === "Место не указано") continue;
+    const group = groups.get(key) ?? [];
+    group.push(row);
+    groups.set(key, group);
+  }
+  const rowsWithDuplicates = rows.map((row) => ({
+    ...row,
+    possibleDuplicates:
+      groups
+        .get(possibleDuplicateKey(row) ?? "")
+        ?.filter((item) => item.id !== row.id)
+        .map((item) => ({ id: item.id, url: item.url, site: item.site })) ?? [],
   }));
   const counts = {
     all: rows.length,
@@ -132,5 +189,11 @@ export function buildDashboardData(reportInput: unknown, trackerInput: unknown) 
       ? `applications/${item.folder}/${encodeURIComponent(item.attachments.find((name) => name.includes("certificate"))!)}`
       : null,
   }));
-  return { generatedAt: report.generatedAt, counts, rows, drafts };
+  return {
+    generatedAt: report.generatedAt,
+    discovery: report.discovery ?? null,
+    counts,
+    rows: rowsWithDuplicates,
+    drafts,
+  };
 }

@@ -5,12 +5,21 @@ check. `pnpm discover:boards` runs Just Join IT, No Fluff Jobs, Bulldogjob and S
 using Jooble quota. `pnpm discover:poland` combines them with Jooble when a key is
 configured. Existing `pnpm discover` still supports configured ATS sources.
 
+`pnpm discover:remote` reads the public Ashby job board for the employers in
+`config/search-remote.json`. The pilot currently includes Docplanner. It keeps
+only listed junior IT roles whose structured board fields say both Remote and
+Poland. The original employer posting remains the source of truth; review any
+specific location or schedule restrictions before preparing an application.
+This command does not use the Jooble quota and is not yet part of the schedule.
+
+Jooble uses four Opole searches (junior developer, junior tester, IT helpdesk and IT internship), one page of up to 20 results each. The search location is a query hint, not proof that every returned vacancy is in Opole; verify each posting. The four-request cap is unchanged from the earlier Poland-wide configuration. [Jooble documents a lifetime limit of 500 requests for a free key](https://help.jooble.org/en/support/solutions/articles/60001448238-rest-api-documentation), so avoid unnecessary repeated runs. Broader Polish coverage continues through the public boards, while previously saved Jooble vacancies remain in the database.
+
 Public adapters read one listing page (four IT category pages for No Fluff Jobs) and at most eight detail pages per HTML board;
 SOLID.Jobs reads one published RSS feed and keeps eight IT summaries. Links found on
 the listing are prioritized for junior/intern titles; this is not exhaustive search.
 No pagination, login, CAPTCHA solving or hidden API is used. HTML detail requests
 are spaced one second apart, capped at 8 MB and 20 seconds. Access denials stop the
-source and keep previous successful results; other sources can continue.
+source and keep previous successful results; other sources can continue. Network/timeouts and HTTP 408, 425, 429, or 5xx errors are marked retryable for a later run; they are not automatically retried. Access denials and changed/invalid page structure are not marked retryable.
 
 Just Join IT, No Fluff Jobs and Bulldogjob use JobPosting JSON-LD. No Fluff Jobs rotates backend, frontend, testing and support; explicit driver/recruiter/accountant titles are skipped. They require an explicitly
 Polish office location, skip expired postings and keep the original public URL.

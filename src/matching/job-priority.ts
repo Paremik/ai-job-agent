@@ -102,6 +102,8 @@ export function compareJobPriority(
       (a.priority.signals?.requiredMatches.length ?? 0) ||
     (b.priority.signals?.preferredMatches.length ?? 0) -
       (a.priority.signals?.preferredMatches.length ?? 0) ||
+    Number(a.priority.signals?.targetRole === "other_or_unclear") -
+      Number(b.priority.signals?.targetRole === "other_or_unclear") ||
     a.id.localeCompare(b.id)
   );
 }

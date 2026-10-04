@@ -119,9 +119,13 @@ export function extractLocation(description: string, homeCountry: string): Locat
     }
     if (
       !remote &&
-      /\b(?:must (?:be|live|reside)|required to (?:be|live|reside)|only|except|excluding|not (?:a )?(?:fully )?remote|no remote|cannot work remotely|subject to|depending on|residen(?:t|ce|cy))\b/i.test(
+      (/\b(?:must (?:be|live|reside)|required to (?:be|live|reside)|not (?:a )?(?:fully )?remote|no remote|cannot work remotely|residen(?:t|ce|cy))\b/i.test(
         sentence,
-      )
+      ) ||
+        (/\b(?:only|except|excluding|subject to|depending on)\b/i.test(sentence) &&
+          /\b(?:remote|workplace|office|onsite|on-site|hybrid|location|country|countries|poland|polska|germany|reside|resident)\b/i.test(
+            sentence,
+          )))
     )
       remoteBlocker = true;
 

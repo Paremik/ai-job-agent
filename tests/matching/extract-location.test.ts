@@ -13,6 +13,14 @@ describe("description location extraction", () => {
     expect(result.location.remoteAllowedFromHome).toBe(true);
     expect(result.evidence[0]?.quote).toBe("This role is fully remote from Poland");
   });
+  it("ignores unrelated uses of only and depending on in benefits text", () => {
+    const result = extractLocation(
+      "This role is remote from Poland. You only have a couple of meetings weekly. Paid leave depends on your contract. We can only be equal if we adapt.",
+      "PL",
+    );
+    expect(result.location.remoteAllowedFromHome).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
   it.each([
     "We support remote customers and hybrid events.",
     "This role is not remote.",
