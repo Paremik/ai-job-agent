@@ -770,6 +770,285 @@
         font-size: 12px;
         font-weight: 700;
       }
+      /* A calmer, more legible workspace for long review sessions. */
+      :root {
+        font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+        color: #19352f;
+        background: #f5f6f1;
+      }
+      body {
+        background: radial-gradient(circle at 78% -10%, #e6f1e4 0, transparent 34%), #f5f6f1;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease,
+          transform 150ms ease;
+      }
+      :is(button, a, input, select, textarea, summary):focus-visible {
+        outline: 3px solid #68b685;
+        outline-offset: 3px;
+      }
+      .shell {
+        grid-template-columns: 252px minmax(0, 1fr);
+      }
+      .sidebar {
+        background: linear-gradient(160deg, #173b33 0%, #102b27 62%, #0c2424 100%);
+        padding: 31px 18px;
+        gap: 39px;
+        box-shadow: 9px 0 32px #102c2415;
+      }
+      .brand {
+        gap: 12px;
+        padding: 0 9px;
+        font-size: 19px;
+        color: #fff;
+      }
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #cbf4ad, #86d8ae);
+        box-shadow: 0 6px 18px #071d194d;
+        font-size: 24px;
+      }
+      .brand-copy {
+        display: grid;
+        gap: 2px;
+      }
+      .brand-copy small {
+        color: #a9cab7;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+      .sidebar-label {
+        margin-left: 13px;
+        color: #8fb3a2;
+      }
+      .nav {
+        gap: 7px;
+      }
+      .nav button {
+        min-height: 45px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 11px 13px;
+        color: #d0e0d6;
+        font-weight: 600;
+      }
+      .nav button:hover {
+        background: #ffffff12;
+        border-color: #ffffff1f;
+      }
+      .nav button.active {
+        background: #dcf2dd;
+        color: #174832;
+        box-shadow: 0 6px 16px #061b1733;
+      }
+      .nav-count {
+        background: #ffffff1d;
+        color: #e0f5e6;
+        font-weight: 700;
+      }
+      .nav button.active .nav-count {
+        background: #bce3bd;
+        color: #22503a;
+      }
+      .sidebar-note {
+        border-color: #ffffff29;
+        color: #b0cabe;
+        line-height: 1.65;
+      }
+      .content {
+        max-width: 1660px;
+        padding: 38px clamp(20px, 3vw, 48px) 56px;
+      }
+      .topline {
+        min-height: 140px;
+        align-items: center;
+        margin-bottom: 22px;
+        padding: 24px 28px;
+        border: 1px solid #dbe9dc;
+        border-radius: 23px;
+        background: linear-gradient(108deg, #fff 0%, #f2faef 72%, #e5f3e3 100%);
+        box-shadow: 0 15px 34px #193e2910;
+      }
+      .eyebrow {
+        color: #35764d;
+        letter-spacing: 0.14em;
+      }
+      h1 {
+        color: #18372b;
+        font-size: clamp(30px, 3vw, 42px);
+        letter-spacing: -0.055em;
+      }
+      .subtitle {
+        color: #63766b;
+        margin: 9px 0 0;
+      }
+      .topline > div:last-child {
+        display: grid;
+        justify-items: end;
+        gap: 9px;
+      }
+      .report-date {
+        margin: 0;
+        color: #55725d;
+        background: #ffffffbc;
+        border: 1px solid #d8e9d8;
+      }
+      #refresh-report {
+        background: #235f40;
+        color: #fff;
+        border-color: #235f40;
+        box-shadow: 0 5px 12px #235f4026;
+      }
+      #refresh-report:hover {
+        background: #174c33;
+      }
+      .notice {
+        margin-bottom: 16px;
+        border-radius: 12px;
+        background: #eef6e9;
+      }
+      .stats {
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        min-height: 118px;
+        position: relative;
+        padding: 18px 20px;
+        border-color: #e0e9df;
+        border-radius: 18px;
+        box-shadow: 0 8px 22px #1d3d2a0a;
+      }
+      .stat::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        border-radius: 18px 0 0 18px;
+        background: #83b798;
+      }
+      .stat:nth-child(2)::before { background: #4f9b6d; }
+      .stat:nth-child(3)::before { background: #d5a450; }
+      .stat:nth-child(4)::before { background: #9faeaa; }
+      .stat strong {
+        font-size: 32px;
+        color: #183d2d;
+      }
+      .stat span {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .filters-panel,
+      .panel,
+      .draft {
+        border-color: #e0e8de;
+        border-radius: 19px;
+        box-shadow: 0 10px 30px #183a280b;
+      }
+      .filters-panel {
+        padding: 22px 24px;
+        margin-bottom: 18px;
+      }
+      .filters-head h2 {
+        color: #1c392b;
+        font-size: 17px;
+      }
+      .filters-section + .filters-section {
+        border-color: #e9eee7;
+      }
+      .filter-grid {
+        gap: 12px;
+      }
+      .filter-field {
+        gap: 7px;
+        color: #496452;
+      }
+      .search,
+      .filter-field input,
+      .filter-field select {
+        border-color: #d7e2d6;
+        background: #fcfdfa;
+      }
+      .search:hover,
+      .filter-field input:hover,
+      .filter-field select:hover {
+        border-color: #97b69d;
+      }
+      .toggle {
+        border-color: #d7e2d6;
+        color: #335941;
+        font-weight: 650;
+      }
+      .toggle:hover:not(:disabled) {
+        background: #eef7ec;
+        border-color: #a6cbae;
+      }
+      .toggle.active,
+      .queue-tabs .toggle.active {
+        background: #dff0dc;
+        color: #1f603a;
+        border-color: #8ec393;
+      }
+      .queue-tabs .toggle {
+        height: 37px;
+        border-radius: 999px;
+        padding-inline: 13px;
+      }
+      .workspace {
+        gap: 18px;
+      }
+      .panel-head {
+        min-height: 63px;
+        border-color: #e8eee7;
+      }
+      .panel-head strong {
+        color: #1b382b;
+        font-size: 16px;
+      }
+      .job-entry,
+      .job-card {
+        border-color: #edf0ea;
+      }
+      .job-card {
+        padding-block: 18px;
+      }
+      .job-card:hover {
+        background: #f6faf3;
+      }
+      .job-card.active {
+        background: #edf7ea;
+        box-shadow: inset 4px 0 #4e9c69;
+      }
+      .job-company {
+        color: #4a8760;
+      }
+      .job-title {
+        color: #21372b;
+        font-size: 15px;
+      }
+      .job-meta {
+        color: #6d7f71;
+      }
+      .detail h2 {
+        color: #193d2d;
+      }
+      .detail-section {
+        border-color: #e9eee7;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        button,
+        input,
+        select,
+        textarea {
+          transition: none;
+        }
+      }
       [hidden] {
         display: none !important;
       }
@@ -798,6 +1077,12 @@
           padding: 14px 17px;
           gap: 13px;
         }
+        .brand {
+          padding: 0;
+        }
+        .brand-copy small {
+          display: none;
+        }
         .sidebar-note,
         .sidebar-label {
           display: none;
@@ -816,10 +1101,18 @@
         }
         .topline {
           display: block;
+          min-height: 0;
+          padding: 22px;
+        }
+        .topline > div:last-child {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          margin-top: 16px;
         }
         .report-date {
           display: inline-block;
-          margin: 0 0 15px;
         }
         .stats {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -851,7 +1144,7 @@
   <body>
     <div class="shell">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark">✳</span><span>Job Agent</span></div>
+        <div class="brand"><span class="brand-mark">✦</span><span class="brand-copy"><strong>Job Agent</strong><small>ПОИСК РАБОТЫ В IT</small></span></div>
         <div>
           <p class="sidebar-label">Рабочее пространство</p>
           <nav class="nav" aria-label="Разделы панели">
