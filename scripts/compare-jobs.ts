@@ -6,6 +6,7 @@ import {
 import { SourceChecksSchema, verifiedSourceCheck } from "../src/matching/source-checks.js";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { asc, desc, eq } from "drizzle-orm";
 import { CandidateProfileSchema } from "../src/domain/candidate-profile.js";
 import { createDatabase } from "../src/infrastructure/database/client.js";
@@ -18,11 +19,11 @@ import { prioritySignals } from "../src/matching/priority-signals.js";
 import { screeningDecision } from "../src/matching/screening-decision.js";
 import { writeAtomicFile } from "../src/dashboard/atomic-file.js";
 
-async function main() {
+export async function main() {
   const folder = new URL("../private/", import.meta.url);
-  const profile = CandidateProfileSchema.parse(
-    JSON.parse(await readFile(new URL("candidate-profile.json", folder), "utf8")),
-  );
+  const profile = CandidateProfileSchema.parse(process.env.CANDIDATE_PROFILE
+    ? JSON.parse(process.env.CANDIDATE_PROFILE)
+    : JSON.parse(await readFile(new URL("candidate-profile.json", folder), "utf8")));
   let reviews: unknown = [];
   try {
     reviews = JSON.parse(await readFile(new URL("location-reviews.json", folder), "utf8"));
@@ -41,6 +42,7 @@ async function main() {
         description: jobs.description,
         location: jobs.location,
         workplaceType: jobs.workplaceType,
+        firstSeenAt: jobs.firstSeenAt,
         lastSeenAt: jobs.lastSeenAt,
       })
       .from(jobs)
@@ -127,6 +129,16 @@ async function main() {
         ),
       ).length,
     };
+    const report = {
+      generatedAt: new Date().toISOString(),
+      discovery: latestRun
+        ? { status: latestRun.status, finishedAt: latestRun.finishedAt?.toISOString() ?? null,
+            fetched: latestRun.fetched, valid: latestRun.valid, rejected: latestRun.rejected }
+        : null,
+      profileHash: createHash("sha256").update(JSON.stringify(profile)).digest("hex"),
+      summary, rows,
+    };
+    if (process.env.CLOUD_MODE === "1") return report;
     await mkdir(folder, { recursive: true });
     await writeAtomicFile(
       new URL("comparison-report.json", folder),
@@ -225,7 +237,7 @@ async function main() {
     await database.close();
   }
 }
-await main().catch(() => {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main().catch(() => {
   console.error(
     "Не удалось сравнить вакансии. Проверьте базу, локальный профиль и подтверждения условий. Реквизиты подключения скрыты.",
   );
