@@ -124,7 +124,7 @@ describe("local CV and letter drafts", () => {
     );
   });
 
-  it("tailors support drafts to documented practice without claiming Linux experience", () => {
+  it("keeps support drafts within documented practice rather than inventing tasks", () => {
     const supportProfile = CandidateProfileSchema.parse({
       ...profile,
       facts: [
@@ -158,9 +158,10 @@ describe("local CV and letter drafts", () => {
       "2026-10-02T11:00:00.000Z",
     ).brief;
     const draft = buildLocalDraft(brief, contact, "2026-10-02T11:00:00.000Z");
-    expect(draft.letterText).toContain("instalowałem systemy monitoringu");
+    expect(draft.letterText).toContain("dwie praktyki zawodowe");
     expect(draft.letterText).toContain("administracji systemami");
-    expect(draft.cvText).toContain("Diagnostyka Windows");
+    expect(draft.cvText).not.toContain("Diagnozowanie problemów Windows");
+    expect(draft.letterText).not.toContain("instalowałem systemy monitoringu");
     expect(draft.letterText).not.toContain("administrowałem systemami Linux");
   });
 });
