@@ -41,7 +41,7 @@ async function sendRows(kind:string,rows:unknown[],step:number) {
 async function refresh() {
   for(const name of required)if(!process.env[name])throw Error(`Missing ${name}`);
   process.env.CLOUD_MODE="1";
-  const report=await main();
+  const report=JSON.parse(JSON.stringify(await main())) as Awaited<ReturnType<typeof main>>;
   if(!report)throw Error("Comparison report unavailable");
   const profile=CandidateProfileSchema.parse(JSON.parse(process.env.CANDIDATE_PROFILE!));
   const contact=ApplicantContact.parse(JSON.parse(process.env.APPLICANT_CONTACT!));
@@ -81,7 +81,7 @@ export default async function handler(req:IncomingMessage,res:ServerResponse) {
     console.log("Cloud refresh completed",result);
     running=false;finishedAt=new Date().toISOString();
   }).catch((error)=>{
-    failure=error instanceof Error?error.message.replace(/postgres(?:ql)?:\/\/[^\s]+/gi,"[database]"):"Unknown failure";
+    failure=error instanceof Error?error.message.replace(/postgres(?:ql)?:\/\/[^\s]+/gi,"[database]").slice(0,500):"Unknown failure";
     console.error("Cloud refresh failed",failure);
     running=false;finishedAt=new Date().toISOString();
   }));
