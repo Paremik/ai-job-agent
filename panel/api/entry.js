@@ -88,7 +88,8 @@ export default async function handler(req,res) {
       res.end();return;
     }
     if(!signedIn(req)){
-      if(req.method!=="GET")return reply(res,401,JSON.stringify({error:"Требуется вход"}),"application/json; charset=utf-8");
+      if(req.method!=="GET"||path.startsWith("api/")||path.startsWith("application-drafts/")||path.startsWith("applications/"))
+        return reply(res,401,JSON.stringify({error:"Требуется вход"}),"application/json; charset=utf-8");
       return reply(res,200,page());
     }
     if(path===""||path==="api/entry"){
