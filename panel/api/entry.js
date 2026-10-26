@@ -66,7 +66,13 @@ async function proxy(req,res,path,search) {
   }
   res.setHeader("Cache-Control","no-store");
   res.setHeader("X-Content-Type-Options","nosniff");
-  res.end(Buffer.from(await upstream.arrayBuffer()));
+  let content=Buffer.from(await upstream.arrayBuffer());
+  if(path==="classic" && upstream.headers.get("content-type")?.includes("text/html")){
+    const html=content.toString("utf8").replace("</aside>",
+      '<a href="/logout" style="display:block;margin:8px 24px 24px;color:#e8f3e7;font-weight:700;text-decoration:underline">Выйти из панели</a></aside>');
+    content=Buffer.from(html,"utf8");
+  }
+  res.end(content);
 }
 export default async function handler(req,res) {
   try{
