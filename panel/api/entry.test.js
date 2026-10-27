@@ -48,14 +48,14 @@ test("signed-in dashboard permits its script and blocks other scripts", async ()
   const login = await request("POST", "/?path=login", "password=test-password", headers);
   assert.equal(login.status, 303);
   const cookie = login.headers.get("set-cookie").split(";")[0];
-  const script = "document.body.dataset.loaded = 'yes'";
+  const script = "\r\ndocument.body.dataset.loaded = 'yes'\r\n";
   const previousFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(`<html><nav></nav><script>${script}</script></html>`,
     { headers: { "content-type": "text/html" } });
   try {
     const dashboard = await request("GET", "/?path=classic", "", { cookie });
     assert.equal(dashboard.status, 200);
-    const expectedHash = createHash("sha256").update(script).digest("base64");
+    const expectedHash = createHash("sha256").update(script.replace(/\r\n?/g, "\n")).digest("base64");
     assert.match(dashboard.headers.get("content-security-policy"),
       new RegExp(`script-src 'sha256-${expectedHash.replace(/[+/=]/g, "\\$&")}'`));
     assert.equal(dashboard.headers.get("x-frame-options"), "DENY");

@@ -104,7 +104,7 @@ async function proxy(req,res,path,search) {
       '</nav><a href="/logout" style="display:block;margin:20px 24px 8px;color:#e8f3e7;font-weight:700;text-decoration:underline">Выйти из панели</a>');
     const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
     if(!script)return reply(res,502,"Ошибка загрузки панели");
-    const hash=createHash("sha256").update(script).digest("base64");
+    const hash=createHash("sha256").update(script.replace(/\r\n?/g,"\n")).digest("base64");
     res.setHeader("Content-Security-Policy",
       `default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; `+
       `script-src 'sha256-${hash}'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:`);
