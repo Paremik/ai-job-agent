@@ -1,8 +1,37 @@
-import { createHmac, pbkdf2Sync, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, pbkdf2Sync, timingSafeEqual } from "node:crypto";
 
 const cookieName = "job_agent_session";
 const ttlSeconds = 30 * 24 * 60 * 60;
 const site = "https://ai-job-agent-sync.quirkywave2048.chatgpt.site";
+const attemptWindowMs = 10 * 60 * 1000;
+const maxAttempts = 12;
+const attempts = new Map();
+function clientId(req) {
+  const header = req.headers["x-vercel-forwarded-for"] ?? req.headers["x-forwarded-for"];
+  const value = Array.isArray(header) ? header[0] : header ?? "unknown";
+  return value.split(",")[0].trim().slice(0, 64);
+}
+function failedAttempts(id, now = Date.now()) {
+  const current = attempts.get(id);
+  if (!current || now - current.since >= attemptWindowMs) return 0;
+  return current.count;
+}
+function recordFailure(id, now = Date.now()) {
+  if (attempts.size > 5000) {
+    for (const [key, value] of attempts)
+      if (now - value.since >= attemptWindowMs) attempts.delete(key);
+    if (attempts.size > 5000) attempts.delete(attempts.keys().next().value);
+  }
+  const current = attempts.get(id);
+  attempts.set(id, !current || now - current.since >= attemptWindowMs
+    ? { since: now, count: 1 } : { since: current.since, count: current.count + 1 });
+}
+function securityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+}
 const equal = (a,b) => {
   const left=Buffer.from(a),right=Buffer.from(b);
   return left.length===right.length && timingSafeEqual(left,right);
@@ -28,7 +57,10 @@ function page(error="") {
 }
 function reply(res,status,body,type="text/html; charset=utf-8") {
   res.statusCode=status;res.setHeader("Content-Type",type);res.setHeader("Cache-Control","no-store");
-  res.setHeader("X-Content-Type-Options","nosniff");res.end(body);
+  securityHeaders(res);
+  if(type.startsWith("text/html"))res.setHeader("Content-Security-Policy",
+    "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'unsafe-inline'");
+  res.end(body);
 }
 async function body(req) {
   const chunks=[];let size=0;
@@ -65,11 +97,17 @@ async function proxy(req,res,path,search) {
     const value=upstream.headers.get(key);if(value)res.setHeader(key,value);
   }
   res.setHeader("Cache-Control","no-store");
-  res.setHeader("X-Content-Type-Options","nosniff");
+  securityHeaders(res);
   let content=Buffer.from(await upstream.arrayBuffer());
   if(path==="classic" && upstream.headers.get("content-type")?.includes("text/html")){
     const html=content.toString("utf8").replace("</nav>",
       '</nav><a href="/logout" style="display:block;margin:20px 24px 8px;color:#e8f3e7;font-weight:700;text-decoration:underline">Выйти из панели</a>');
+    const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
+    if(!script)return reply(res,502,"Ошибка загрузки панели");
+    const hash=createHash("sha256").update(script).digest("base64");
+    res.setHeader("Content-Security-Policy",
+      `default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; `+
+      `script-src 'sha256-${hash}'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:`);
     content=Buffer.from(html,"utf8");
   }
   res.end(content);
@@ -81,8 +119,17 @@ export default async function handler(req,res) {
     if(path==="login"&&req.method==="POST"){
       const origin=req.headers.origin;
       if(origin&&origin!==`https://${req.headers.host}`)return reply(res,403,"Недоступно");
+      const id=clientId(req);
+      if(failedAttempts(id)>=maxAttempts){
+        res.setHeader("Retry-After", "600");
+        return reply(res,429,page("Слишком много попыток. Попробуйте через 10 минут."));
+      }
       const form=new URLSearchParams((await body(req)).toString("utf8"));
-      if(!validPassword(form.get("password")))return reply(res,401,page("Неверный пароль"));
+      if(!validPassword(form.get("password"))){
+        recordFailure(id);
+        return reply(res,401,page("Неверный пароль"));
+      }
+      attempts.delete(id);
       const expires=Date.now()+ttlSeconds*1000;
       res.statusCode=303;res.setHeader("Location","/classic");
       res.setHeader("Set-Cookie",`${cookieName}=${expires}.${signature(expires)}; Path=/; Max-Age=${ttlSeconds}; HttpOnly; Secure; SameSite=Lax`);
