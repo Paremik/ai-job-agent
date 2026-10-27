@@ -88,7 +88,7 @@ function projectOrder(role: string) {
 }
 
 function isSupportRole(role: string) {
-  return /\b(?:linux|windows|system|network|it) administrator\b|\b(?:it support|help\s?desk|service desk|informatyk(?:a)?)\b/iu.test(
+  return /\b(?:linux|windows|system|network|it) administrator\b|\b(?:it support|support engineer|help\s?desk|service desk|informatyk(?:a)?)\b/iu.test(
     role,
   );
 }
@@ -134,13 +134,9 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
     ...(facts.has("bot") ? ["- Python, aiogram, aiohttp i SQLite w projekcie bota Telegram."] : []),
     ...(facts.has("map") ? ["- React i TypeScript w Camera Map."] : []),
     ...(facts.has("cafe") ? ["- React i JavaScript w Niebieski Kot."] : []),
-    ...(facts.has("internships")
-      ? ["- Testy manualne, poprawianie błędów i konfiguracja środowiska podczas praktyk IT."]
-      : []),
-    ...(facts.has("internships") && supportRole
-      ? [
-          "- Diagnostyka Windows, montaż komputerów i instalacja systemów monitoringu podczas praktyk IT.",
-        ]
+    ...(facts.has("internships") ? ["- Dwie praktyki zawodowe w obszarze IT i programowania."] : []),
+    ...(facts.has("web-skills") && supportRole
+      ? ["- CV wymienia troubleshooting, dokumentację techniczną i podstawy konfiguracji sieci."]
       : []),
   ];
   const skillSummary = [
@@ -156,7 +152,7 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
       : `Mogę rozpocząć współpracę od ${availableFrom}`
     : "Termin rozpoczęcia wymaga uzgodnienia";
   const practice = facts.has("internships")
-    ? "Segal, Opole — praktyki IT, 05.2024–06.2025 i 05.2026–06.2026. Testy manualne, poprawianie błędów, refaktoryzacja i porządkowanie kodu oraz konfiguracja środowiska. Diagnozowanie problemów Windows, montaż komputerów, instalacja systemów monitoringu i podłączanie sprzętu u klientów. Praktyki szkolne, nie pełnoetatowe zatrudnienie programistyczne."
+    ? "Segal, Opole — dwie praktyki zawodowe w obszarze IT i programowania, 05.2024–06.2025 i 05.2026–06.2026. Szczegółowe zadania wymagają potwierdzenia; praktyki nie były pełnoetatowym zatrudnieniem programistycznym."
     : "Praktyki i doświadczenie do uzupełnienia na podstawie potwierdzonych dokumentów.";
   const intro = [
     facts.has("education")
@@ -165,7 +161,7 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
     focus(brief.job.title),
     skillSummary ? `W projektach własnych korzystam z ${skillSummary}.` : "",
     facts.has("internships")
-      ? "Podczas praktyk wykonywałem zadania programistyczne i testy manualne."
+      ? "Odbyłem dwie praktyki zawodowe w obszarze IT i programowania."
       : "",
   ]
     .filter(Boolean)
@@ -196,7 +192,7 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
     facts.has("education")
       ? "ZSTiO im. Kazimierza Gzowskiego w Opolu — Technik Programista, 09.2021–obecnie (nauka w toku)."
       : "Wykształcenie do uzupełnienia po sprawdzeniu dokumentów.",
-    facts.has("react-course") ? "React od podstaw — Strefa Kursów, certyfikat 16.03.2026." : "",
+    facts.has("react-course") ? "React from Scratch — certyfikat 16.03.2026." : "",
     languageText,
     `${availableText}; godziny i tryb pracy do uzgodnienia${facts.has("education") ? " z uwzględnieniem nauki" : ""}.`,
   ]
@@ -249,9 +245,7 @@ export function buildLocalDraft(brief: Brief, contact: ApplicantContact, now: st
       : "",
     "",
     facts.has("internships")
-      ? supportRole
-        ? "Podczas praktyk IT w Segal diagnozowałem problemy Windows, montowałem komputery, instalowałem systemy monitoringu i pomagałem przy podłączaniu sprzętu u klientów. Wykonywałem także testy manualne, poprawiałem błędy i konfigurowałem środowisko."
-        : "Podczas praktyk IT w Segal wykonywałem testy manualne, poprawiałem błędy, porządkowałem i refaktoryzowałem kod oraz konfigurowałem środowisko. Diagnozowałem również problemy Windows i pomagałem przy podłączaniu sprzętu u klientów."
+      ? "Odbyłem dwie praktyki zawodowe w obszarze IT i programowania w Segal w Opolu. W CV wskazuję również troubleshooting, dokumentację techniczną oraz podstawy konfiguracji sieci."
       : "",
     "",
     `Moje dotychczasowe doświadczenie obejmuje projekty własne${facts.has("internships") ? " i praktyki szkolne" : ""}; nie przedstawiam go jako pełnoetatowego doświadczenia komercyjnego. ${gapSentence}`,

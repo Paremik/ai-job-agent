@@ -1196,7 +1196,7 @@
         <div class="notice" id="storage-notice" role="status" hidden></div>
         <section id="jobs-view">
           <div class="stats" aria-label="Сводка">
-            <div class="stat"><strong id="count-all">0</strong><span>Всего вакансий</span></div>
+            <div class="stat"><strong id="count-all">0</strong><span>Вакансий в работе</span></div>
             <div class="stat">
               <strong id="count-now">0</strong><span>Для проверки сейчас</span>
             </div>
@@ -1567,33 +1567,41 @@
       }
 
       function updateNavigationCounts() {
+        const activeRows = data.rows.filter(
+          (row) => !archived(review(row)) && review(row)?.status !== "dismissed",
+        );
+        byId("nav-all").textContent = activeRows.length;
+        byId("count-all").textContent = activeRows.length;
+        byId("count-now").textContent = activeRows.filter(
+          (row) => row.status === "review_now",
+        ).length;
+        byId("count-clarify").textContent = activeRows.filter(
+          (row) => row.status === "clarify_first",
+        ).length;
+        byId("count-defer").textContent = activeRows.filter(
+          (row) => row.status === "defer",
+        ).length;
         byId("opole-quick-filter").textContent =
           "Ополе (" +
-          data.rows.filter(
+          activeRows.filter(
             (row) =>
-              normal(row.location).includes("opole") &&
-              !archived(review(row)) &&
-              review(row)?.status !== "dismissed",
+              normal(row.location).includes("opole"),
           ).length +
           ")";
         byId("first-look-filter").textContent =
           "Первый просмотр (" +
-          data.rows.filter(
-            (row) => row.firstLook && !archived(review(row)) && review(row)?.status !== "dismissed",
-          ).length +
+          activeRows.filter((row) => row.firstLook).length +
           ")";
         byId("remote-poland-toggle").textContent =
           "Удалённо из Польши подтверждено (" +
-          data.rows.filter(
+          activeRows.filter(
             (row) =>
               row.workplaceType === "remote" &&
-              row.locationStatus === "eligible" &&
-              !archived(review(row)) &&
-              review(row)?.status !== "dismissed",
+              row.locationStatus === "eligible",
           ).length +
           ")";
-        byId("nav-important").textContent = [...state.records.values()].filter(
-          (item) => item.starred,
+        byId("nav-important").textContent = activeRows.filter(
+          (row) => review(row)?.starred,
         ).length;
         byId("nav-archive").textContent = [...state.records.values()].filter(archived).length;
         byId("nav-actions").textContent = scheduledRecords().length;
@@ -1657,8 +1665,7 @@
             (state.view !== "important" || review(row)?.starred) &&
             (state.status === "dismissed"
               ? review(row)?.status === "dismissed"
-              : state.view === "important" ||
-                (!archived(review(row)) && review(row)?.status !== "dismissed")) &&
+              : !archived(review(row)) && review(row)?.status !== "dismissed") &&
             (state.status === "all" ||
               state.status === "dismissed" ||
               (state.status === "first_look" && row.firstLook) ||

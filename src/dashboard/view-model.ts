@@ -36,6 +36,7 @@ const Report = z.object({
       canonicalUrl: PublicUrl,
       location: z.string().nullable(),
       workplaceType: z.string(),
+      firstSeenAt: z.iso.datetime().optional(),
       lastSeenAt: z.iso.datetime().optional(),
       locationDecision: z.object({ status: z.string(), explanation: z.string() }).nullish(),
       descriptionReview: z.object({ sourceUrl: PublicUrl }).nullish(),
@@ -116,6 +117,7 @@ export function buildDashboardData(reportInput: unknown, trackerInput: unknown) 
     sourceCheckedAt: row.sourceCheck?.checkedAt ?? null,
     location: plain(row.location ?? "Место не указано", 140),
     workplaceType: row.workplaceType,
+    firstSeenAt: row.firstSeenAt ?? null,
     lastSeenAt: row.lastSeenAt ?? null,
     locationStatus: row.locationDecision?.status ?? "needs_review",
     locationExplanation: plain(

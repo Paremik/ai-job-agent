@@ -1,0 +1,5 @@
+{
+  "$schema":"https://openapi.vercel.sh/vercel.json",
+  "rewrites":[{"source":"/(.*)","destination":"/api/entry?path=$1"}],
+  "functions":{"api/entry.js":{"maxDuration":60}}
+}

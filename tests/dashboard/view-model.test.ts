@@ -8,6 +8,7 @@ const row = {
   canonicalUrl: "https://example.com/jobs/1",
   location: "Opole",
   workplaceType: "remote",
+  firstSeenAt: "2026-10-01T09:00:00Z",
   lastSeenAt: "2026-10-02T10:00:00Z",
   locationDecision: { status: "needs_review", explanation: "Verify remote eligibility" },
   comparison: {
@@ -55,6 +56,7 @@ describe("local dashboard data", () => {
     expect(data.rows[0]?.site).toBe("example.com");
     expect(data.rows[0]?.reasons).toEqual(["Confirm language"]);
     expect(data.rows[0]?.firstLook).toBe(false);
+    expect(data.rows[0]?.firstSeenAt).toBe(row.firstSeenAt);
     expect(data.rows[0]?.lastSeenAt).toBe(row.lastSeenAt);
     expect(data.discovery?.status).toBe("partial");
     expect(data.drafts[0]?.cv).toBe("applications/2026-10-01/cv.pdf");
