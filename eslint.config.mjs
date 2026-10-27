@@ -12,6 +12,16 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
+    files: ["panel/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+  },
+
+  {
     files: ["**/*.ts"],
 
     languageOptions: {
